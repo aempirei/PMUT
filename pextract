@@ -1,0 +1,82 @@
+#!/usr/bin/perl
+#
+#
+# POST MODERN UNIX TOOLS
+# pextract
+# 
+# given a regular expression, the extracted capture patterns are printed, 
+# delimited by either the default or given delimiter, from each line in
+# the input file.
+#
+# Copyright(c) 2010 by Christopher Abad
+# aempirei@gmail.com
+#
+# this code is licensed under the "don't be a retarded asshole" license.
+# if i don't like how you use this software i can tell you to fuck off
+# and you can't use it, otherwise you can use it.
+#
+#
+
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+
+use PMUT;
+
+$|++;
+
+my $help;
+my $version;
+my $delim = "\t";
+
+my @options = (['delim|d=s', \$delim,   'delimiter/seperator token (default TAB -- "\t")' ],
+               ['version|V', \$version, 'show version'                                    ],
+               ['help|h',    \$help,    'show this help'                                  ]);
+
+my $result =  GetOptions(map { $_->[0] => $_->[1] } @options);
+
+my $reg = shift @ARGV;
+
+if(defined $version) {
+   print version()."\n";
+   exit;
+}
+
+if(defined $help or not defined $reg) {
+   help();
+   exit;
+}
+
+while(my $line = <STDIN>) {
+	if(my @matches = ($line =~ /$reg/i)) {
+        print join($delim, @matches)."\n";
+	}
+}
+
+sub version {
+   return "PMUT/".PMUT::PROGRAM." version ".PMUT::VERSION;
+}
+
+sub help {
+
+   print STDERR "\nusage: ".PMUT::PROGRAM." [options] regexp < inputfile\n\n";
+
+   print STDERR "given a regular expression, the extracted capture patterns are printed, delimited by either the default\n";
+   print STDERR "or given delimiter, from each line in the input file.\n\n";
+
+   foreach my $option (@options) {
+      print STDERR "\t".'--'.sprintf("%-18s", $option->[0]).$option->[2]."\n";
+   }
+
+   print STDERR "\nsome usage examples are the following:\n\n";
+
+   print STDERR "\twget -q -O- http://portland.craigslist.org/sss/index.rss | ".PMUT::PROGRAM." 'dc:title><!\\[CDATA\\[(.*) (\\\$\\d+)'\n";
+   print STDERR "\tls -l | ".PMUT::PROGRAM." --delim=, '(\\d\\d\\d\\d)-(\\d\\d)-(\\d\\d) \\d\\d:\\d\\d (\\S+)\$'\n";
+
+   print STDERR "\n".version()."\n";
+
+   print STDERR "report bugs to <aempirei\@gmail.com>\n\n";
+}
+

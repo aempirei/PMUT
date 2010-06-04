@@ -1,0 +1,214 @@
+#!/usr/bin/perl
+#
+#
+# POST MODERN UNIX TOOLS
+# pf
+#
+# this program finds either all normal files or only ones matching
+# a regular expression and then pops up a nice little scrollable list
+# that you can select any file from, which then pops open the file
+# in either the default editor specified with $VISUAL if its set
+# otherwise vi if it exists or a binary or it outputs the selected
+# filename to STDOUT
+#
+# Copyright(c) 2009 by Christopher Abad
+# aempirei@gmail.com
+#
+# this code is licensed under the "don't be a retarded asshole" license.
+# if i don't like how you use this software i can tell you to fuck off
+# and you can't use it, otherwise you can use it.
+#
+#
+
+use strict;
+use warnings;
+use POSIX qw(floor);
+use List::Util qw(min max);
+use Getopt::Long;
+
+use PMUT;
+
+# ANSI codes for screen manipulation
+
+use constant CLREOL => "\033[K";
+use constant CLRSCR => "\033[2J";
+use constant GOHOME => "\033[H";
+
+$|++;
+
+#
+# parameters and such
+#
+
+my @accept;
+my @reject;
+my $version;
+my $help;
+my $hl = 1;
+my $case = 0;
+my $stdout;
+my $binary='vi';
+
+my @options = (['accept|a=s', \@accept,  'specify a perl-compatable delimiter pattern (default is whitespace -- "\s+")' ],
+               ['reject|r=s', \@reject,  'use a perl-compatable regular expression to extract template parameters'      ],
+               ['exec|e=s',   \$binary,  'execute the specified binary'                                                 ],
+               ['version|V',  \$version, 'show version'                                                                 ],
+               ['highlight!', \$hl,      'highlight owner executable files (default: ON)'                               ],
+               ['case!',      \$case,    'case sensitive regular expressions (default: OFF)'                            ],
+               ['stdout|c',   \$stdout,  'print filename to standard output'                                            ],
+               ['help|h',     \$help,    'show this help'                                                               ]);
+
+my $result =  GetOptions(map { $_->[0] => $_->[1] } @options);
+
+# various string highlighting
+
+sub reversed {
+    my $string = shift;
+    return "\033[7m".$string."\033[0m";
+};
+sub bold {
+    my $string = shift;
+    return "\033[1m".$string."\033[0m";
+};
+
+sub dim {
+    my $string = shift;
+    return "\033[1;30m".$string."\033[0m";
+};
+
+sub hilite {
+
+    my ( $highlight, $lines ) = @_;
+
+    my $maxrows = 32;
+    my $linecount = scalar(@{$lines});
+
+    my $base = $highlight - ($highlight % $maxrows);
+
+    my $i = $base;
+    my $limit = min($linecount, $base + $maxrows);
+
+    while($i < $limit) {
+
+        my @st = stat $lines->[$i];
+        my $mode = $st[2];
+
+        if($i == $highlight) {
+            print STDERR (sprintf "[%02x] ", $i, $mode).reversed($lines->[$i]).CLREOL."\n";
+        } else {
+            if($hl and ($mode & 0111)) {
+                print STDERR (sprintf "[%02x] ", $i, $mode).bold($lines->[$i]).CLREOL."\n";
+            } else {
+                print STDERR (sprintf "[%02x] ", $i, $mode).($lines->[$i]).CLREOL."\n";
+            }
+        }
+
+        $i++;
+    }
+
+    if($linecount > $maxrows) {
+        while($i % $maxrows != 0) {
+            print STDERR CLREOL."\n";
+            $i++;
+        }
+    }
+
+    return $lines->[$highlight];
+}
+
+
+if(defined $version) {
+   print version()."\n";
+   exit;
+}
+
+if(defined $help) {
+   help();
+   exit;
+}
+
+$case = $case ? '' : '(?i)';
+
+open(FD, 'find . -type f|') or die("find failed");
+
+my @lines = map { $_ =~ s/[\r\n]//g; $_ } <FD>;
+
+foreach my $regex (@accept) {
+   @lines = grep { /$case$regex/ } @lines;
+}
+
+foreach my $regex (@reject) {
+   @lines = grep { !/$case$regex/ } @lines;
+}
+
+close(FD);
+
+my $linecount = scalar(@lines);
+
+if($linecount == 0) {
+    print STDERR "total failure, theres no files!\n";
+    exit;
+}
+
+my $row = 0;
+
+print STDERR CLRSCR;
+
+while(1) {
+
+   print STDERR GOHOME;
+
+   my $dir = hilite($row, \@lines);
+
+   my $ch=`pgetch`;
+
+   if($ch =~ /^up/i) {
+      $row--;
+   } elsif($ch =~ /^down/i) {
+      $row++;
+   } elsif($ch =~ /^(int|del|bs)/i) {
+      print STDERR "GOODBYE!\n";
+      last;
+   } elsif($ch =~ /^enter/i) {
+      if($stdout) {
+         printf $dir."\n";
+      } else {
+         system("$binary '$dir'");
+      }
+      last;
+   }
+
+   $row = min(max(0, $row), $linecount - 1);
+}
+
+sub version {
+   return "PMUT/".PMUT::PROGRAM." version ".PMUT::VERSION;
+}
+
+sub help {
+
+   print STDERR "\nusage: ".PMUT::PROGRAM." [options]\n\n";
+
+   print STDERR "pop up a scrollable list of all the normal files that match a set of acceptance and rejection regular expressions\n";
+   print STDERR "then launch an editor or specified binary with the file as the first parameter or just print the filename to STDOUT\n\n";
+
+   foreach my $option (@options) {
+      my $name = $option->[0];
+      if($name =~ /!/) {
+         $name =~ s/!//g;
+         print STDERR "\t".'--'.sprintf("%-18s", $name).$option->[2]."\n";
+         print STDERR "\t".'--no-'.sprintf("%-15s", $name)."\n";
+      } else {
+         print STDERR "\t".'--'.sprintf("%-18s", $name).$option->[2]."\n";
+      }
+   }
+
+   print STDERR "\nsome usage examples are the following:\n\n";
+
+   print STDERR "\t".PMUT::PROGRAM." -c | xargs rm -v\n";
+   print STDERR "\t".PMUT::PROGRAM." -r='\\.(svn|swp)' -r='/\\.'\n";
+
+   print STDERR "\n".version()."\n";
+
+   print STDERR "report bugs to <aempirei\@gmail.com>\n\n";
+}

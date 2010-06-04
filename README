@@ -1,0 +1,33 @@
+
+----[ POST MODERN UNIX TOOLS v1.0 ]---------------------------------------------
+
+this is a set of unix tools currently written in various languages.
+
+they do various random things.
+
+things you need:
+
+   gcc
+   perl
+   gmake
+
+build them:
+
+   make
+
+install them:
+
+   make install
+
+read about what they do:
+
+   find . -maxdepth 1 -perm -0100 -type f | while read a; do $a -h; done 2>&1 | less
+
+Copyright(c) 2009 by Christopher Abad
+aempirei@gmail.com
+
+this code is licensed under the "don't be a retarded asshole" license.
+if i don't like how you use this software i can tell you to fuck off
+and you can't use it, otherwise you can use it.
+
+--------------------------------------------------------------------------------

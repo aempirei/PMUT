@@ -1,0 +1,163 @@
+#!/usr/bin/perl
+#
+#
+# POST MODERN UNIX TOOLS
+# pcols
+#
+# This is a program formats text files for display on STDOUT.
+#
+# Copyright(c) 2009 by Christopher Abad
+# aempirei@gmail.com
+#
+# this code is licensed under the "don't be a retarded asshole" license.
+# if i don't like how you use this software i can tell you to fuck off
+# and you can't use it, otherwise you can use it.
+#
+#
+
+use strict;
+use warnings;
+use POSIX qw(floor);
+use Getopt::Long;
+use IO::File;
+
+use PMUT;
+
+$|++;
+
+#
+# parameters and such
+#
+
+my $version;
+my $help;
+my $width = 80;
+my $hl = 0;
+
+my @options = (['width|w=i',  \$width,   'set the total column width of output (default: 80)'],
+               ['highlight!', \$hl,      'highlight idenitical lines (default: ON)'          ],
+               ['version|V',  \$version, 'show version'                                      ],
+               ['help|h',     \$help,    'show this help'                                    ]);
+
+my $result =  GetOptions(map { $_->[0] => $_->[1] } @options);
+
+if(defined $version) {
+   print version()."\n";
+   exit;
+}
+
+if(defined $help) {
+   help();
+   exit;
+}
+
+my @files = @ARGV;
+
+my %fds;
+
+foreach my $file (@files) {
+   my $fd = new IO::File $file, 'r';
+   $fds{$file} = $fd if(defined $fd);
+}
+
+my $fcount = scalar(keys(%fds));
+
+if($fcount < 1) {
+   print STDERR "no files were opened\n";
+   exit;
+}
+
+my $fwidth = floor(($width - $fcount + 1) / $fcount);
+
+my @keys = sort keys(%fds);
+
+#
+# print column headers
+#
+
+my @toprow;
+
+foreach my $key (@keys) {
+      push @toprow, pad($key, $fwidth);
+}
+
+print join(' ', @toprow)."\n";
+
+print ''.('-' x $width)."\n";
+
+#
+# print rows
+#
+
+while(1) {
+   my @row;
+   my $eof = 1;
+   foreach my $key (@keys) {
+      my $fd = $fds{$key};
+      my $line = $fd->eof ? '' : <$fd>;
+      $eof = 0 unless($fd->eof);
+      chomp $line;
+      push @row, pad($line, $fwidth);
+   }
+   last if($eof);
+   my $ident = 0;
+   if($hl) {
+      $ident = 1;
+      foreach my $i (1..$fcount-1) {
+         $ident = 0 if($row[$i] ne $row[$i - 1]);
+      }
+   }
+   print "\33[1m" if($ident);
+   print join(' ', @row);
+   print "\33[0m" if($ident);
+   print "\n";
+}
+
+#
+# clean up
+#
+
+foreach my $fd (values(%fds)) {
+   $fd->close();
+}
+
+exit;
+
+sub pad {
+   my ( $s, $w ) = @_;
+   $s = substr($s, 0, $w) if(length($s) > $w);
+   my $left = $w - length($s);
+   $s .= ' ' x $left if($left > 0);
+   return $s;
+}
+
+sub version {
+   return "PMUT/".PMUT::PROGRAM." version ".PMUT::VERSION;
+}
+
+sub help {
+
+   print STDERR "\nusage: ".PMUT::PROGRAM." [options] file...\n\n";
+
+   print STDERR "format text files into columns for display on STDOUT\n\n";
+
+   foreach my $option (@options) {
+      my $name = $option->[0];
+      if($name =~ /!/) {
+         $name =~ s/!//g;
+         print STDERR "\t".'--'.sprintf("%-18s", $name).$option->[2]."\n";
+         print STDERR "\t".'--no-'.sprintf("%-15s", $name)."\n";
+      } else {
+         print STDERR "\t".'--'.sprintf("%-18s", $name).$option->[2]."\n";
+      }
+   }
+
+   print STDERR "\nsome usage examples are the following:\n\n";
+
+   print STDERR "\t".PMUT::PROGRAM." *.c\n";
+   print STDERR "\t".PMUT::PROGRAM." -w 140 --highlight *.txt\n";
+
+   print STDERR "\n".version()."\n";
+
+   print STDERR "report bugs to <aempirei\@gmail.com>\n\n";
+}

@@ -1,0 +1,140 @@
+#!/usr/bin/perl
+#
+# POST MODERN UNIX TOOLS
+# pid3tag
+#
+# This is a program outputs ID3 tags in a variety of formats.
+# It doesn't do editing of ID3 tags.
+#
+# Copyright(c) 2009 by Christopher Abad
+# aempirei@gmail.com
+#
+# this code is licensed under the "don't be a retarded asshole" license.
+# if i don't like how you use this software i can tell you to fuck off
+# and you can't use it, otherwise you can use it.
+#
+#
+
+use strict;
+use warnings;
+
+use JSON;
+use MP3::Tag;
+use Getopt::Long;
+
+use PMUT;
+
+$|++;
+
+my @fields = qw(filename title track artist album comment year genre);
+
+my %format_pre_fn = (
+    'c'    => sub {
+        return 'enum id3_field_t { '.join(', ', map { 'ID3'.uc($_) } @fields)." };\n";
+    }
+);
+
+my %format_fn = (
+    'text' => sub {
+        my $tag = shift;
+        return join("\n", map { $_.": ".$tag->{$_} } @fields)."\n";
+    },
+    'json' => sub {
+        my $tag = shift;
+        return $tag;
+    },
+    'c'    => sub {
+        my $tag = shift;
+        # FIXME: this doesnt work right because it does't escape shit that doesnt act nicely in C strings
+        return '{ '.join(', ', map { '"'.$tag->{$_}.'"' } @fields)." }";
+    }
+);
+
+my %format_post_fn = (
+    'text' => sub {
+        my $tags = shift;
+        return join("\n", @$tags);
+    },
+    'json' => sub {
+        my $tags = shift;
+        return to_json($tags);
+    },
+    'c'    => sub {
+        my $tags = shift;
+        my $str = 'int mp3tag_sz = '.scalar(@$tags).";\n";
+        $str .= "char *mp3tags[".scalar(@$tags)."][".scalar(@fields)."] = {\n".join(",\n", @$tags)."\n};\n";
+    }
+);
+
+my $format = 'text';
+my $help;
+my $version;
+
+my $formats = '{'.join('|',keys(%format_fn)).'}';
+
+my @options = (['format|f=s', \$format,  "output format (default is 'text' -- choices are $formats)" ],
+               ['version|V',  \$version, 'show version'                                              ],
+               ['help|h',     \$help,    'show this help'                                            ]);
+
+my $result =  GetOptions(map { $_->[0] => $_->[1] } @options);
+
+if(defined $version) {
+   print version()."\n";
+   exit;
+}
+
+if(defined $help) {
+   help();
+   exit;
+}
+
+print $format_pre_fn{$format}() if exists $format_pre_fn{$format};
+
+my @filenames = @ARGV ? @ARGV : map { chomp $_; $_; } <STDIN>;
+
+my @tags;
+
+foreach my $filename (@filenames) {
+
+    my $mp3 = MP3::Tag->new($filename);
+    die "$filename is not a valid mp3 file" unless $mp3;
+    my @info = $mp3->autoinfo();
+    my %tag;
+
+    unshift @info, $filename; 
+
+    foreach my $i (0..scalar(@fields-1)) {
+        $tag{$fields[$i]} = $info[$i];
+    }
+
+    push @tags, $format_fn{$format}(\%tag);
+}
+
+print $format_post_fn{$format}(\@tags);
+
+sub version {
+   return 'PMUT/'.PMUT::PROGRAM.' version '.PMUT::VERSION;
+}
+
+sub help {
+
+   print STDERR "\nusage: ".PMUT::PROGRAM." [options] mp3file...\n";
+   print STDERR "       ".PMUT::PROGRAM." [options] < playlist.txt\n\n";
+
+   print STDERR "This is a program outputs ID3 tags in a variety of formats. It can accept a list of mp3 filenames as\n";
+   print STDERR "parameters or it can accept a list of mp3 filenames from STDIN. It doesn't do ID3 tag editing though.\n\n";
+
+   foreach my $option (@options) {
+      print STDERR "\t".'--'.sprintf("%-18s", $option->[0]).$option->[2]."\n";
+   }
+
+   print STDERR "\nsome usage examples are the following:\n\n";
+
+   print STDERR "\t".PMUT::PROGRAM." ~/Music/ginuwine-pony.mp3\n";
+   print STDERR "\t".PMUT::PROGRAM." -f json ~/Music/*.mp3\n";
+   print STDERR "\tfind ~ -name *.mp3 | ".PMUT::PROGRAM."\n";
+
+   print STDERR "\n".version()."\n";
+
+   print STDERR "report bugs to <aempirei\@gmail.com>\n\n";
+}

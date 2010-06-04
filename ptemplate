@@ -1,0 +1,136 @@
+#!/usr/bin/perl
+#
+#
+# POST MODERN UNIX TOOLS
+# ptemplate
+#
+# this program takes a template string that contains replacement
+# directives and then an input file from standard in then for each
+# input line, extracts a number parameters either by tokenization or by
+# regular expression capture patterns, and then expands the special
+# escape replacement directives in the template with each parameter
+# value.
+#
+# Copyright(c) 2009 by Christopher Abad
+# aempirei@gmail.com
+#
+# this code is licensed under the "don't be a retarded asshole" license.
+# if i don't like how you use this software i can tell you to fuck off
+# and you can't use it, otherwise you can use it.
+#
+#
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+
+use PMUT;
+
+$|++;
+
+my $delim = "\\s+";
+my $regex;
+my $help;
+my $version;
+
+my @options = (['delim|d=s',      \$delim,   'specify a perl-compatable delimiter pattern (default is whitespace -- "\s+")' ],
+               ['expression|e=s', \$regex,   'use a perl-compatable regular expression to extract template parameters'      ],
+               ['version|V',      \$version, 'show version'                                                                 ],
+               ['help|h',         \$help,    'show this help'                                                               ]);
+
+my $result =  GetOptions(map { $_->[0] => $_->[1] } @options);
+
+my $template = shift @ARGV;
+
+if(defined $version) {
+   print version()."\n";
+   exit;
+}
+
+if(defined $help or not defined $template) {
+   help();
+   exit;
+}
+
+while(my $line = <STDIN>) {
+
+   my $i;
+
+   my @params;
+
+   my %subs;
+
+   chomp $line;
+
+   if(defined $regex) {
+      @params = ($line =~ /$regex/);
+   } else {
+      @params = split(/$delim/, $line);
+   }
+
+   # if substitution parameters are found for current input line, then perform the replacement
+
+   if(@params) {
+
+      my $count = scalar(@params);
+      my $output = $template;
+      $i = 1;
+
+      while($i <= $count) {
+
+         # substitute any special escapes in the parameters so recursive replacement doesnt occur on their expansion
+
+         while($params[$i-1] =~ /(\\\d+)/) {
+
+            my $key = '<'.rand().".P$i.".rand().'>';
+            $subs{$key} = $1;
+            $params[$i-1] =~ s/\Q$1\E/$key/g;
+         }
+
+         # decode current special escape
+
+         $output =~ s/\\$i(?=\Z|$|\D)/$params[$i-1]/g;
+         $i++;
+      }
+
+      # substitute back the original strings for any special escape substitutions that occured
+
+      foreach my $key (keys(%subs)) {
+         my $value = $subs{$key};
+         print STDERR "REPLACING BACK : $key => $value\n";
+         $output =~ s/\Q$key\E/$value/g;
+      }
+
+      # print the final expanded template
+
+      print $output."\n";
+   }
+}
+
+sub version {
+   return "PMUT/".PMUT::PROGRAM." version ".PMUT::VERSION;
+}
+
+sub help {
+
+   print STDERR "\nusage: ".PMUT::PROGRAM." [options] template < inputfile\n\n";
+
+   print STDERR "each special escape (\\1, \\2, ...) in the template is replaced by the corresponding parameter in the input.\n";
+   print STDERR "input parameters are either extracted via tokenizing with the default or specified delimiter using the PERL\n";
+   print STDERR "split() function by default or by a perl-compatable regular expression if specified in the options.\n\n";
+
+   foreach my $option (@options) {
+      print STDERR "\t".'--'.sprintf("%-18s", $option->[0]).$option->[2]."\n";
+   }
+
+   print STDERR "\nsome usage examples are the following:\n\n";
+
+   print STDERR "\t".PMUT::PROGRAM." --delim=: 'User \"\\1\" (uid=\\3) uses the shell \"\\7\"' < /etc/passwd\n";
+   print STDERR "\tls -l | ".PMUT::PROGRAM." '\\8 is \\5 bytes and is owned by \\3.'\n";
+   print STDERR "\twget -q -O- http://spam.la | ".PMUT::PROGRAM." -e 'href=\"(\\?id=[^\"]+)\"' 'http://www.spam.la/\\1'\n";
+
+   print STDERR "\n".version()."\n";
+
+   print STDERR "report bugs to <aempirei\@gmail.com>\n\n";
+}
