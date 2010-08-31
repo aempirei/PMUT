@@ -22,7 +22,7 @@ use strict;
 use warnings;
 
 use Getopt::Long;
-
+use Encode;
 use PMUT;
 
 $|++;
@@ -50,7 +50,9 @@ if(defined $help or not defined $reg) {
 }
 
 while(my $line = <STDIN>) {
+	$line = decode_utf8($line);
 	if(my @matches = ($line =~ /$reg/i)) {
+		@matches = map { encode_utf8($_); } @matches;
         print join($delim, @matches)."\n";
 	}
 }
