@@ -24,10 +24,13 @@ PMUT.pm: PMUT
 PMUT: PMUT/Makefile
 	( cd PMUT ; make )
 
+PMUT/lib:
+	mkdir -p PMUT/lib
+
 PMUT/Makefile:	PMUT/lib/PMUT.pm
 	( cd PMUT ; perl Makefile.PL )
 
-PMUT/lib/PMUT.pm: PMUT.pm.template VERSION
+PMUT/lib/PMUT.pm: PMUT.pm.template VERSION PMUT/lib
 	perl -pe "s/___V___/`cat VERSION`/g" < PMUT.pm.template > $@
 
 pgetch: pgetch.o
