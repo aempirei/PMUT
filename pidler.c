@@ -49,7 +49,7 @@ main(int argc, char **argv)
     int opt;
     int ticks = 0;
 
-    while ((opt = getopt(argc, argv, "ahV?")) != -1) {
+    while ((opt = getopt(argc, argv, "vhV?")) != -1) {
 
         switch (opt) {
         case 'v':
