@@ -33,8 +33,7 @@ version()
 void
 help(const char *prog)
 {
-    fprintf(stderr, "\nusage: %s [options] < inputfile\n", prog);
-    fprintf(stderr, "       %s [options] string...\n\n", prog);
+    fprintf(stderr, "\nusage: %s [options]\n\n", prog);
     fputs("idle in the foreground until a SIGINT s recieved via CTRL+C\n\n"
           "\t-v verbose. show ticks every 5 seconds\n"
           "\t-h show this help\n" "\t-V show version\n\n", stderr);
