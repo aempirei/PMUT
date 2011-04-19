@@ -1,6 +1,19 @@
 /*
- * Toilet File Wiper 1.0 (toilet-1.0)
- * Copyright(c) 2011 by Christopher Abad <aempirei@gmail.com>
+ *
+ * POST MODERN UNIX TOOLS
+ * ptoilet
+ *
+ * a program that does a four-pass wipe on each file passed through the
+ * argument list. The four wiping patterns are all bits 0, all bits 1,
+ * random, and chargen.
+ *
+ * Copyright(c) 2011 by Christopher Abad
+ * aempirei@gmail.com
+ *
+ * this code is licensed under the "don't be a retarded asshole" license.
+ * if i don't like how you use this software i can tell you to fuck off
+ * and you can't use it, otherwise you can use it.
+ *
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,12 +24,11 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <math.h>
+#include <libgen.h>
+
+#include "version.h"
 
 #define MIN(a,b) ((a)<(b)?(a):(b))
-#define VERSION "1.0"
-#define PROGRAM "toilet"
-#define NAME "Toilet File Wiper"
-#define AUTHOR "Christopher Abad <aempirei@gmail.com>"
 
 enum PATTERN { pzero = 0, pone = 1, prandom, pchargen, pmin = pzero, pmax = pchargen };
 
@@ -199,22 +211,25 @@ void wipe_file(const char *fn, enum PATTERN pattern) {
 	close(fd);
 }
 
-void showhelp(const char *arg) {
-	printf("\nusage: %s [options] files...\n\n", arg);
-	printf("\t-h   show this help\n");
-	printf("\t-V   show version\n");
-	putchar('\n');
+const char * version() {   
+	static char string[80];
+	snprintf(string, sizeof(string), "PMUT/%s version %s", "ptoilet", PMUTVERSION);
+	return string;
 }
 
-void showversion() {
-	printf("%s %s (%s-%s)\n", NAME, VERSION, PROGRAM, VERSION);
+void help(const char *arg) {
+	fprintf(stderr, "\nusage: %s [options] files...\n\n", arg);
+	fprintf(stderr, "\t-h show this help\n");
+	fprintf(stderr, "\t-V show version\n\n");
+	fprintf(stderr, "%s\n", version());
+	fprintf(stderr, "%s\n\n", "report bugs to <aempirei@gmail.com>");
 }
 
 int main(int argc, char **argv) {
 
 	int i;
 	enum PATTERN pattern;
-	int ch;
+	int opt;
 
 	srand(time(NULL) + getpid());
 
@@ -222,20 +237,17 @@ int main(int argc, char **argv) {
 
 	/* process options */
 
-	opterr = 0;
+	while ((opt = getopt(argc, argv, "hV?")) != -1) {
 
-	while((ch = getopt(argc, argv, "hV")) != -1) {
-		switch(ch) {
+		switch (opt) {
 			case 'V':
-				showversion();
+				printf("%s\n", version());
 				exit(EXIT_SUCCESS);
 			case 'h':
-				showversion();
-				showhelp(*argv);
+			default:
+				*argv = basename(*argv);
+				help(basename(*argv));
 				exit(EXIT_SUCCESS);
-			case '?':
-				fprintf(stderr, "uknown option -%c\n", optopt);
-				exit(EXIT_FAILURE);
 		}
 	}
 
