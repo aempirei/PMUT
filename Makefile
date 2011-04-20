@@ -1,7 +1,7 @@
 CC = gcc
 CCC = g++
-CCFLAGS = -Wall -O2 -I. -lm
-CFLAGS = -Wall -O2 -I. -lm
+CCFLAGS = -Wall -O2 -I.
+CFLAGS = -Wall -O2 -I.
 CPPFLAGS = -Wall -O2 -I.
 TARGETS = pgetch purlencode pidler ptoilet
 SCRIPTS = pf ptemplate pextract pcols pjoin pid3tag prename pcd
@@ -32,6 +32,12 @@ PMUT/Makefile:	PMUT/lib/PMUT.pm
 
 PMUT/lib/PMUT.pm: PMUT.pm.template VERSION PMUT/lib
 	perl -pe "s/___V___/`cat VERSION`/g" < PMUT.pm.template > $@
+
+pidler: pidler.o
+	$(CCC) $(CCFLAGS) -o $@ $<
+
+ptoilet: ptoilet.o
+	$(CCC) $(CCFLAGS) -lm -o $@ $<
 
 pgetch: pgetch.o
 	$(CCC) $(CCFLAGS) -o $@ $<
