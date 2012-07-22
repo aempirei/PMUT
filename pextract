@@ -30,9 +30,11 @@ $|++;
 my $help;
 my $version;
 my $delim = "\t";
+my $append;
 
 my @options = (['delim|d=s', \$delim,   'delimiter/seperator token (default TAB -- "\t")' ],
                ['version|V', \$version, 'show version'                                    ],
+					['append|a',  \$append,  'append matched line as last column of output'    ],
                ['help|h',    \$help,    'show this help'                                  ]);
 
 my $result =  GetOptions(map { $_->[0] => $_->[1] } @options);
@@ -51,8 +53,10 @@ if(defined $help or not defined $reg) {
 
 while(my $line = <STDIN>) {
 	$line = decode_utf8($line);
+	chomp $line;
 	if(my @matches = ($line =~ /$reg/i)) {
 		@matches = map { encode_utf8($_); } @matches;
+		push @matches, $line if(defined $append);
         print join($delim, @matches)."\n";
 	}
 }
