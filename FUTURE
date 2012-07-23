@@ -1,1 +1,3 @@
 palign -- align text data by an edit-distance dynamic programming algorithm that augments whitespace to optimize global alignment
+prat   -- PEG-style expression parsing superior to grep/pcre regular expressions
+pcode  -- encode/decode various printable formats, base64, uri, html, hex
