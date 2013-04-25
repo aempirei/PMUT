@@ -53,6 +53,8 @@ if(defined $help or not defined $template) {
    exit;
 }
 
+my $line_no = 0;
+
 while(my $line = <STDIN>) {
 
    my $i;
@@ -60,6 +62,8 @@ while(my $line = <STDIN>) {
    my @params;
 
    my %subs;
+
+   $line_no++;
 
    chomp $line;
 
@@ -75,22 +79,24 @@ while(my $line = <STDIN>) {
 
       my $count = scalar(@params);
       my $output = $template;
-      $i = 1;
+      $i = 0;
+
+      unshift @params, sprintf("%d", $line_no);
 
       while($i <= $count) {
 
          # substitute any special escapes in the parameters so recursive replacement doesnt occur on their expansion
 
-         while($params[$i-1] =~ /(\\\d+)/) {
+         while($params[$i] =~ /(\\\d+)/) {
 
             my $key = '<'.rand().".P$i.".rand().'>';
             $subs{$key} = $1;
-            $params[$i-1] =~ s/\Q$1\E/$key/g;
+            $params[$i] =~ s/\Q$1\E/$key/g;
          }
 
          # decode current special escape
 
-         $output =~ s/\\$i(?=\Z|$|\D)/$params[$i-1]/g;
+         $output =~ s/\\$i(?=\Z|$|\D)/$params[$i]/g;
          $i++;
       }
 
