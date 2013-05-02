@@ -87,7 +87,7 @@ const char *bytestr(size_t sz) {
 	} else {
 		double y = floor(log((double)sz) / log((double)base));
 		double d = (double)sz / pow((double)base, y);
-		snprintf(buf, sizeof(buf), "%0.2lf%c%s", d, pre[(int)y], unit);
+		snprintf(buf, sizeof(buf), "%0.2f%c%s", d, pre[(int)y], unit);
 	}
 
 	return buf;
