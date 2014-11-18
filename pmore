@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# POST MODERN UNIX TOOLS
+# pmore
+#
+# this script is defunct.
+#
+
+echo WARNING: this script is defunct. >&2
+
+less -R
