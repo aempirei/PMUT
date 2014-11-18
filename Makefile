@@ -4,7 +4,7 @@ CCFLAGS = -Wall -O2 -I. -pedantic
 CFLAGS = -Wall -O2 -I. -pedantic
 CPPFLAGS = -Wall -O2 -I.
 TARGETS = pgetch purlencode pidler ptoilet
-SCRIPTS = pmore pf ptemplate pextract pcols pjoin pid3tag prename pcd
+SCRIPTS = pf ptemplate pextract pcols pjoin pid3tag prename pcd pmore
 MODULES = PMUT
 INSTALL_PATH = /usr/local/bin
 
@@ -34,9 +34,6 @@ PMUT/lib/PMUT.pm: PMUT.pm.template VERSION PMUT/lib
 	perl -pe "s/___V___/`cat VERSION`/g" < PMUT.pm.template > $@
 
 pidler: pidler.o
-	$(CCC) $(CCFLAGS) -o $@ $<
-
-pmore: pmore.o
 	$(CCC) $(CCFLAGS) -o $@ $<
 
 ptoilet: ptoilet.o

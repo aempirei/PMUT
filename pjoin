@@ -1,77 +1,10 @@
-#!/usr/bin/perl
-#
+#!/bin/bash
 # POST MODERN UNIX TOOLS
 # pjoin
 #
-# This is a program joins input lines into a single joined line much
-# like join() in PERL or Ruby
-#
-# Copyright(c) 2009 by Christopher Abad
-# aempirei@gmail.com
-#
-# this code is licensed under the "don't be a retarded asshole" license.
-# if i don't like how you use this software i can tell you to fuck off
-# and you can't use it, otherwise you can use it.
-#
+# this script is defunct.
 #
 
-use strict;
-use warnings;
+echo WARNING: this script is defunct. >&2
 
-use Getopt::Long;
-
-use PMUT;
-
-$|++;
-
-my $delim = ',';
-my $help;
-my $version;
-
-my @options = (['delim|d=s', \$delim,   'specify a delimiter string (default is comma -- ",")' ],
-               ['version|V', \$version, 'show version'                                         ],
-               ['help|h',    \$help,    'show this help'                                       ]);
-
-my $result =  GetOptions(map { $_->[0] => $_->[1] } @options);
-
-if(defined $version) {
-   print version()."\n";
-   exit;
-}
-
-if(defined $help) {
-   help();
-   exit;
-}
-
-my @items;
-
-while(my $line = <STDIN>) {
-   chomp $line;
-   push @items, $line;
-}
-
-print join($delim, @items)."\n";
-
-sub version {
-   return "PMUT/".PMUT::PROGRAM." version ".PMUT::VERSION;
-}
-
-sub help {
-
-   print STDERR "\nusage: ".PMUT::PROGRAM." [options] < inputfile\n\n";
-
-   print STDERR "each input line is joined together using the delimiter string and printed out on a single line.\n\n";
-
-   foreach my $option (@options) {
-      print STDERR "\t".'--'.sprintf("%-18s", $option->[0]).$option->[2]."\n";
-   }
-
-   print STDERR "\nsome usage examples are the following:\n\n";
-
-   print STDERR "\tpextract '^.*?:.*?:(\\d+)' < /etc/passwd | ".PMUT::PROGRAM."\n";
-
-   print STDERR "\n".version()."\n";
-
-   print STDERR "report bugs to <aempirei\@gmail.com>\n\n";
-}
+tr '\n' ',' | perl -pe 's/,$/\n/'
