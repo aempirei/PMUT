@@ -3,7 +3,7 @@ CCC = g++
 CCFLAGS = -Wall -O2 -I. -pedantic
 CFLAGS = -Wall -O2 -I. -pedantic
 CPPFLAGS = -Wall -O2 -I.
-TARGETS = pgetch purlencode pidler ptoilet
+TARGETS = pgetch purlencode pidler ptoilet pcopy
 SCRIPTS = pf ptemplate pextract pcols pjoin pid3tag prename pcd pmore
 MODULES = PMUT
 INSTALL_PATH = /usr/local/bin
@@ -35,6 +35,9 @@ PMUT/lib/PMUT.pm: PMUT.pm.template VERSION PMUT/lib
 
 pidler: pidler.o
 	$(CCC) $(CCFLAGS) -o $@ $<
+
+pcopy: pcopy.o
+	$(CCC) $(CCFLAGS) -lm -o $@ $<
 
 ptoilet: ptoilet.o
 	$(CCC) $(CCFLAGS) -lm -o $@ $<
