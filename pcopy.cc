@@ -27,31 +27,39 @@
 
 #include "version.h"
 
+namespace config {
+		bool sync = false;
+		bool verbose = false;
+};
+
 const char *bytestr(size_t sz) {
 
-	static const int base = 1024;
-	static const char *unit = "B";
-	static const char *pre = " kMGTPEZY";
-	static char buf[32];
+		static const int base = 1024;
+		static const char *unit = "B";
+		static const char *pre = " kMGTPEZY";
+		static char buf[32];
 
-	if(sz == 1) {
-		snprintf(buf, sizeof(buf), "%ld byte", (long)sz);
-	} else if(sz < base) {
-		snprintf(buf, sizeof(buf), "%ld bytes", (long)sz);
-	} else {
-		double y = floor(log((double)sz) / log((double)base));
-		double d = (double)sz / pow((double)base, y);
-		snprintf(buf, sizeof(buf), "%0.2f%c%s", d, pre[(int)y], unit);
-	}
+		if(sz == 1) {
+				snprintf(buf, sizeof(buf), "%ld byte", (long)sz);
+		} else if(sz < base) {
+				snprintf(buf, sizeof(buf), "%ld bytes", (long)sz);
+		} else {
+				double y = floor(log((double)sz) / log((double)base));
+				double d = (double)sz / pow((double)base, y);
+				snprintf(buf, sizeof(buf), "%0.2f%c%s", d, pre[(int)y], unit);
+		}
 
-	return buf;
+		return buf;
 }
 
 const char *filesize(const char *fn) {
-	struct stat st;
-	if(stat(fn, &st) == -1)
-		return NULL;
-	return bytestr(st.st_size);
+
+		struct stat st;
+
+		if(stat(fn, &st) == -1)
+				return NULL;
+
+		return bytestr(st.st_size);
 }
 
 void print_bar(long a, long b, int x) {
@@ -168,7 +176,7 @@ int copy_file(const char *src, const char *dst) {
 		if(fstat(fdsrc, &st) == -1)
 				goto cleanup;
 
-		fddst = open(dst, O_WRONLY | O_CREAT | O_TRUNC, st.st_mode & 0777);
+		fddst = open(dst, O_WRONLY | O_CREAT | O_TRUNC | (config::sync ? O_SYNC : 0), st.st_mode & 0777);
 		if(fddst == -1)
 				goto cleanup;
 
@@ -211,51 +219,68 @@ const char * version() {
 }
 
 void help(const char *prog) {
-	char *base = strdup(prog);
-	fprintf(stderr, "\nusage: %s [option]... source destination\n\n", basename(base));
-	fprintf(stderr, "\t-h show this help\n");
-	fprintf(stderr, "\t-V show version\n\n");
-	fprintf(stderr, "%s\n", version());
-	fprintf(stderr, "%s\n\n", "report bugs to <aempirei@gmail.com>");
-	free(base);
+		char *base = strdup(prog);
+		fprintf(stderr, "\nusage: %s [option]... source destination\n\n", basename(base));
+		fprintf(stderr, "\t-h show this help\n");
+		fprintf(stderr, "\t-V show version\n");
+		fprintf(stderr, "\t-v toggle verbose mode (default=%s)\n", config::verbose ? "enabled" : "disabled");
+		fprintf(stderr, "\t-s toggle synchronous mode (default=%s)\n\n", config::sync ? "enabled" : "disabled");
+		fprintf(stderr, "%s\n", version());
+		fprintf(stderr, "%s\n\n", "report bugs to <aempirei@gmail.com>");
+		free(base);
 }
 
 int main(int argc, char **argv) {
 
-	int opt;
+		int opt;
 
-	srand(time(NULL) + getpid());
+		srand(time(NULL) + getpid());
 
-	setvbuf(stdout, NULL, _IONBF, 0);
+		setvbuf(stdout, NULL, _IONBF, 0);
 
-	/* process options */
+		/* process options */
 
-	while ((opt = getopt(argc, argv, "hV?")) != -1) {
+		while ((opt = getopt(argc, argv, "svhV?")) != -1) {
 
-		switch (opt) {
+				switch (opt) {
 
-			case 'V':
+						case 's':
 
-				printf("%s\n", version());
-				return EXIT_FAILURE;
+								config::sync = not config::sync;
+								break;
 
-			case 'h':
-			default:
+						case 'v':
 
+								config::verbose = not config::verbose;
+								break;
+
+						case 'V':
+
+								printf("%s\n", version());
+								return EXIT_FAILURE;
+
+						case 'h':
+						default:
+
+								help(*argv);
+								return EXIT_FAILURE;
+				}
+		}
+
+		if(argc - optind != 2) {
 				help(*argv);
 				return EXIT_FAILURE;
 		}
-	}
 
-	if(argc - optind != 2) {
-		help(*argv);
-		return EXIT_FAILURE;
-	}
+		if(config::verbose) {
+				if(config::sync)
+						puts("synchronous mode");
+		}
 
-	if(copy_file(argv[optind], argv[optind + 1]) == -1) {
-			perror("copy_file()");
-			return EXIT_FAILURE;
-	}
+		if(copy_file(argv[optind], argv[optind + 1]) == -1) {
+				perror("copy_file()");
+				return EXIT_FAILURE;
+		}
 
-	return EXIT_SUCCESS;
+		return EXIT_SUCCESS;
 }
