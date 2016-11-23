@@ -77,6 +77,8 @@ elif [ "$1" == "-s" ]; then
 
 	if [ "$2" == "" ]; then
 		echo an alias must be chosen
+	elif [[ "$2" =~ ^- ]]; then
+		echo "directory aliases cannot begin with dash (\"-\")"
 	else
 		dir=`pwd`
 		echo saving directory alias "$2 => $dir"

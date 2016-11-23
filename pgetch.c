@@ -72,11 +72,14 @@ const char *charmap(int ch) {
    static char charmaps[40];
 #define CMAP(a,b) if(ch==(a)) return(b)
    CMAP('\33', "ESC");
+   else CMAP('\0', "NUL");
+   else CMAP('\a', "BEL");
    else CMAP('\3', "INT");
    else CMAP('\4', "EOF");
-   else CMAP('\n', "ENTER");
+   else CMAP('\n', "LF");
+   else CMAP('\r', "CR");
    else CMAP('\t', "TAB");
-   else CMAP('\10', "BS");
+   else CMAP('\b', "BS");
    else CMAP('\177', "DEL");
    else CMAP(' ', "SPACE");
 #undef CMAP
@@ -85,10 +88,26 @@ const char *charmap(int ch) {
    return charmaps;
 }
 
+/*
+ * escape sequence modifier combinations:
+ *
+ * 2: SHIFT
+ * 3: ALT
+ * 4: ALT+SHIFT
+ * 5: CTRL
+ * 6: CTRL+SHIFT
+ * 7: CTRL+ALT
+ * 8: CTRL+ALT+SHIFT
+ *
+ */
+
 const char *escmap(const char *s) {
    static char escmaps[40];
 #define SMAP(a,b) if(strcmp(a,s)==0) return(b)
    SMAP("OP","NUMLOCK");
+   else SMAP("OH","HOME");
+   else SMAP("OF","END");
+   else SMAP("[P", "PAUSE");
    else SMAP("[A", "UP");
    else SMAP("[B", "DOWN");
    else SMAP("[C", "RIGHT");
@@ -111,7 +130,6 @@ const char *escmap(const char *s) {
    else SMAP("[21~","F10");
    else SMAP("[23~","F11");
    else SMAP("[24~","F12");
-
    else SMAP("[Z","SHIFT-TAB");
 #undef SMAP
    else snprintf(escmaps, sizeof(escmaps), "ESC+%s", s);
@@ -204,7 +222,7 @@ main(int argc, char **argv, char **envp)
 
       if (p == NULL || strlen(p) == 0)
          fputs("ESC", stdout);
-      else if(*p == '[')
+      else if(*p == '[' ||  *p == 'O')
          fputs(escmap(p), stdout);
       else if(*p == '\33')
          printf("ALT-%s", escmap(p+1));
