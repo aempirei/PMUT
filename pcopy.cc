@@ -62,7 +62,11 @@ const char *filesize(const char *fn) {
 		return bytestr(st.st_size);
 }
 
-void print_bar(long a, long b, int x) {
+void print_rate(long rate) {
+	printf(" %s/sec ", bytestr(rate));
+}
+
+void print_bar(long a, long b, int x, long rate) {
 
 		static int y0 = -1;
 
@@ -81,6 +85,8 @@ void print_bar(long a, long b, int x) {
 						putchar('.');
 
 				putchar(']');
+
+				print_rate(rate);
 
 				fputs("\033[u", stdout);
 		}
@@ -120,11 +126,16 @@ int copy_block(int src, int dst, off_t offset, size_t block_sz, size_t chunk_sz)
 		char *chunk = new char[chunk_sz];
 
 		ssize_t left, done, n;
+		time_t start, elapsed, dt;
+		long rate = 0;
 
 		bool success = false;
 
 		if(lseek(src, offset, SEEK_SET) == (off_t)-1)
 				goto cleanup;
+
+		start = time(NULL);
+		dt = 0;
 
 		done = 0;
 		left = block_sz;
@@ -143,7 +154,13 @@ int copy_block(int src, int dst, off_t offset, size_t block_sz, size_t chunk_sz)
 				left -= n;
 				done += n;
 
-				print_bar(done, block_sz, bar_sz);
+				elapsed = time(NULL) - start;
+				if(elapsed > dt) {
+					rate = done / elapsed;
+					dt = elapsed;
+				}
+
+				print_bar(done, block_sz, bar_sz, rate);
 
 		}
 
