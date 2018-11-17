@@ -45,6 +45,9 @@ ptoilet: ptoilet.o
 pgetch: pgetch.o
 	$(CCC) $(CCFLAGS) -o $@ $<
 
+pioperf: pioperf.o
+	$(CCC) $(CCFLAGS) -lm -o $@ $<
+
 purlencode: purlencode.o
 	$(CCC) $(CCFLAGS) -o $@ $<
 

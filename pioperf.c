@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <libgen.h>
 #include <sys/time.h>
+#include <math.h>
 
 
 int writeall(int fd, const void *buf, ssize_t buf_sz) {
@@ -38,6 +39,12 @@ int main(int argc, char **argv) {
 
 	struct timeval tv1, tv2, dtv;
 
+	if(argc > 2)
+		data_sz = 1 << strtoul(argv[2], NULL, 0);
+
+	if(data_sz < buf_sz)
+		data_sz = buf_sz;
+
 	data_sz -= (data_sz % buf_sz);
 
 	buf = malloc(buf_sz);
@@ -47,10 +54,13 @@ int main(int argc, char **argv) {
 	for(ssize_t n = 0; n < long_num; n++)
 		((long *)buf)[n] = random();
 	
-	if(argc != 2) {
-		fprintf(stderr, "\nusage: %s filename\n\n", basename(*argv));
+	if(argc < 2) {
+		fprintf(stderr, "\nusage: %s filename [log2_datasize]\n\n", basename(*argv));
 		exit(EXIT_FAILURE);
 	}
+
+	printf("datasize = %ld (log2 %1f)\n", data_sz, log2(data_sz));
+	printf("filename = %s\n", argv[1]);
 
 	fd = open(argv[1], O_CREAT | O_SYNC | O_WRONLY, 0600);
 	if(fd == -1) {
