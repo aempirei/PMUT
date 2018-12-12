@@ -2,15 +2,13 @@
 #
 #
 # POST MODERN UNIX TOOLS
-# pf
+# pcd
 #
 # this program allows you to save directory aliases and easily
 # change directories via the aliases. it is similar to pushd and popd
-# if you would like, add the aliases 'd' and 's' via either runnning pcd -a
-# from your bashrc or adding them to your aliasrc file by running pcd -A
-# to print the alias commands to screen and copying them into your aliasrc.
+# in some ways.
 #
-# Copyright(c) 2010 by Christopher Abad
+# Copyright(c) 2018 by Christopher Abad
 # aempirei@gmail.com
 #
 # this code is licensed under the "don't be a retarded asshole" license.
@@ -19,97 +17,37 @@
 #
 #
 
-pcdrc="$HOME/.pcdrc"
+PCDRC="$HOME/.pcdrc"
 
-if [ ! -f "$pcdrc" ]; then
-	touch "$pcdrc"
-fi
+touch "$PCDRC"
 
-# dont forget, never use the 'exit' command because this script
-# is invoked with '.' prefix to execute in the current interpreter.
-
-if [ "$1" == "" ]; then
-
-	# no arguments, list the directory aliases
-
-	echo
-	echo '[ directory aliases ]'
-	echo
-	cat $pcdrc | tr " " "\t" | while read a; do echo -e "\t$a"; done
-	echo
-
-elif [ "$1" == "-h" ]; then
-
-	# -h for help
-
-	cat <<__EOF__
-
-usage: $0 [options] [alias]
-
-save and recall directory aliases. no arguments will list all saved aliases
-just an alias and no options will recall the specified directory alias and change
-the working directory.
-
-	-s alias	save the current working directory with the specified directory alias
-	-a			set the 'd' and 's' bash aliases
-	-A			print the bash alias commands
-	-V			show version
-	-h			show this help
-
-some usage examples are the following
-
-	pcd -s root
-	pcd root
-	pcd -A >> ~/.bashrc
-
-PMUT/pcd version `pextract -V | pextract 'version (\S+)'`
-report bugs to <aempirei@gmail.com>
-
-__EOF__
-
-elif [ "$1" == "-V" ]; then
-
-	echo PMUT/pcd version `pextract -V | pextract 'version (\S+)'`
-
-elif [ "$1" == "-s" ]; then
-
-	# -s alias | save the current working directory alias
-
-	if [ "$2" == "" ]; then
+function s () {
+	if [ -z "$1" ]; then
 		echo an alias must be chosen
-	elif [[ "$2" =~ ^- ]]; then
+	elif [[ "$1" =~ ^- ]]; then
 		echo "directory aliases cannot begin with dash (\"-\")"
 	else
 		dir=`pwd`
-		echo saving directory alias "$2 => $dir"
-		echo "$2" "$dir" >> $pcdrc
+		echo saving directory alias "$1 => $dir"
+		echo "$1" "$dir" >> "$PCDRC"
 	fi
+}
 
-elif [ "$1" == "-a" ]; then
+function d () {
 
-	# -a | set the bash aliases for 'd' and 's'
+	local -A pcd
 
-	alias d='. pcd'
-	alias s='. pcd -s'
+	while read name dir; do
+		pcd[$name]="$dir"
+	done < "$PCDRC"
 
-elif [ "$1" == "-A" ]; then
-
-	# -A | print the bash alias commands to be added to the aliasrc or bashrc
-
-	echo "alias d='. pcd'"
-	echo "alias s='. pcd -s'"
-else
-
-	# perform the directory alias recall
-
-	while read alias dir; do
-		if [ "$alias" == "$1" ]; then
-			echo "changing directory to $dir"
-			cd "$dir"
-			break
-		fi
-	done < $pcdrc
-fi
-
-
-
+	if [ -z "$1" ]; then
+		for name in "${!pcd[@]}"; do
+			printf "%8s: %s\n" "$name" "${pcd[$name]}"
+		done
+	elif [ -n "${pcd[$1]}" ]; then
+		cd "${pcd[$1]}"
+	else
+		echo "unknown directory alias '$1'" 1>&2
+	fi
+}
