@@ -121,7 +121,9 @@ int write2(int fd, const void *buf, size_t buf_sz) {
 
 int copy_block(int src, int dst, off_t offset, size_t block_sz, size_t chunk_sz) {
 
-		const int bar_sz = 64;
+		const char *scols = getenv("COLUMNS");
+		const long lcols = scols != NULL ? strtol(scols, NULL, 0) : 80;
+		const int bar_sz = (lcols > 0 ? lcols : 80) - 16;
 
 		char *chunk = new char[chunk_sz];
 
