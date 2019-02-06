@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	printf("datasize = %ld (log2 %.1f)\n", data_sz, log2(data_sz));
+	printf("datasize = %ld (log2 %.1f)\n", (long)data_sz, log2(data_sz));
 	printf("filename = %s\n", argv[1]);
 
 	fd = open(argv[1], O_CREAT | O_SYNC | O_WRONLY, 0600);
