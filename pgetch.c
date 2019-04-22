@@ -116,7 +116,7 @@ const char *esc(char f, int a, char c) {
 		case 13:return "F3";
 		case 14:return "F4";
 		case 15:return "F5";
-		case 16:return "F6";
+		case 17:return "F6";
 		case 18:return "F7";
 		case 19:return "F8";
 		case 20:return "F9";
