@@ -18,6 +18,7 @@
 #include <cstring>
 #include <cmath>
 #include <ctime>
+#include <climits>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -63,7 +64,10 @@ const char *filesize(const char *fn) {
 }
 
 void print_left(int left) {
-	printf(" %dh %02dm %02ds remaining", left / 3600, (left % 3600) / 60, left % 60);
+	if(left < 0)
+		printf(" %s", "remaining time unknown");
+	else
+		printf(" %dh %02dm %02ds remaining", left / 3600, (left % 3600) / 60, left % 60);
 }
 
 void print_rate(long rate) {
@@ -76,7 +80,7 @@ void print_bar(long a, long b, int x, long rate) {
 
 		int y = x * a / b;
 
-		int left = (b - a) / rate;
+		int left = rate == 0 ? INT_MIN : ((b - a) / rate);
 
 		if(y != y0) {
 
@@ -91,6 +95,8 @@ void print_bar(long a, long b, int x, long rate) {
 						putchar('.');
 
 				putchar(']');
+
+				fputs("\033[K", stdout);
 
 				print_left(left);
 
