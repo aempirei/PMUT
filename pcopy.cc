@@ -62,8 +62,12 @@ const char *filesize(const char *fn) {
 		return bytestr(st.st_size);
 }
 
+void print_left(int left) {
+	printf(" %dh %02dm %02ds remaining", left / 3600, (left % 3600) / 60, left % 60);
+}
+
 void print_rate(long rate) {
-	printf(" %s/sec ", bytestr(rate));
+	printf(" @ %s/sec", bytestr(rate));
 }
 
 void print_bar(long a, long b, int x, long rate) {
@@ -71,6 +75,8 @@ void print_bar(long a, long b, int x, long rate) {
 		static int y0 = -1;
 
 		int y = x * a / b;
+
+		int left = (b - a) / rate;
 
 		if(y != y0) {
 
@@ -85,6 +91,8 @@ void print_bar(long a, long b, int x, long rate) {
 						putchar('.');
 
 				putchar(']');
+
+				print_left(left);
 
 				print_rate(rate);
 
