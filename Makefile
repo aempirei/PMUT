@@ -1,9 +1,8 @@
 CC = gcc
-CCC = g++
-CCFLAGS = -Wall -O2 -I. -pedantic
+CXX = g++-8
+CXXFLAGS = -Wall -pedantic -std=gnu++17 -O2 -Wno-unused-result -Wno-misleading-indentation
 CFLAGS = -Wall -O2 -I. -pedantic
-CPPFLAGS = -Wall -O2 -I.
-TARGETS = pgetch purlencode pidler ptoilet pcopy pioperf
+TARGETS = pgetch purlencode pidler ptoilet pcopy pioperf pabridge
 SCRIPTS = pf ptemplate pextract pcols pjoin pid3tag prename pcd pmore
 MODULES = PMUT
 INSTALL_PATH = /usr/local/bin
@@ -34,22 +33,25 @@ PMUT/lib/PMUT.pm: PMUT.pm.template VERSION PMUT/lib
 	perl -pe "s/___V___/`cat VERSION`/g" < PMUT.pm.template > $@
 
 pidler: pidler.o
-	$(CCC) $(CCFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $<
+
+pabridge: pabridge.o
+	$(CXX) $(CXXFLAGS) -o $@ $< -lstdc++fs
 
 pcopy: pcopy.o
-	$(CCC) $(CCFLAGS) -lm -o $@ $<
+	$(CXX) $(CFLAGS) -o $@ $<
 
 ptoilet: ptoilet.o
-	$(CCC) $(CCFLAGS) -lm -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $< -lm
 
 pgetch: pgetch.o
-	$(CCC) $(CCFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $<
 
 pioperf: pioperf.o
-	$(CCC) $(CCFLAGS) -lm -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $< -lm
 
 purlencode: purlencode.o
-	$(CCC) $(CCFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $<
 
 clean:
 	if [ -f PMUT/Makefile ]; then ( cd PMUT ; make clean ); fi

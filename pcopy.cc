@@ -31,7 +31,7 @@
 namespace config {
 		bool sync = false;
 		bool verbose = false;
-};
+}
 
 const char *bytestr(size_t sz) {
 
