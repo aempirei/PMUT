@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <string>
 #include <map>
+#include <list>
 
 #include <cstdio>
 #include <cstring>
@@ -17,13 +18,15 @@
 
 namespace fs = std::filesystem;
 
-template <typename T> class basic_histogram {
+bool verbose = false;
+
+template <typename T, size_t K> class basic_histogram {
 	public:
 		using value_type = T;
 		constexpr static size_t type_size = sizeof(value_type);
 		constexpr static size_t type_bits = type_size * 8;
 		constexpr static size_t type_cardinality = (1 << type_bits);
-		constexpr static size_t block_nmemb = 16384;
+		constexpr static size_t block_nmemb = K;
 		constexpr static long block_size = block_nmemb * type_size;
 		static_assert(std::is_integral<value_type>::value, "basic_histogram::value_type isn't integral");
 		static_assert(std::is_unsigned<value_type>::value, "basic_histogram::value_type isn't unsigned");
@@ -75,10 +78,11 @@ template <typename T> class basic_histogram {
 		}
 };
 
-using histogram = basic_histogram<uint8_t>;
-static_assert(std::is_trivially_copyable<histogram>::value, "histogram isn't trivially copyable");
+template <size_t K> using histogram = basic_histogram<uint8_t,K>;
 
-void abridge(FILE *fp, FILE *gp, double threshold) {
+static_assert(std::is_trivially_copyable<histogram<1>>::value, "basic_histogram isn't trivially copyable");
+
+template <size_t K> void abridge(FILE *fp, FILE *gp, double threshold) {
 
 	long sz;
 	long pos;
@@ -86,8 +90,8 @@ void abridge(FILE *fp, FILE *gp, double threshold) {
 
 	auto msg = [&pos, &dpos]() -> auto& { return (std::cerr << '[' << pos << '+' << dpos << "] "); };
 
-	histogram local_model;
-	histogram trial_model;
+	histogram<K> local_model;
+	histogram<K> trial_model;
 
 	fseek(fp, 0, SEEK_END);
 	sz = ftell(fp);
@@ -108,9 +112,9 @@ void abridge(FILE *fp, FILE *gp, double threshold) {
 	while(pos < sz) {
 		for(int delta = 0; delta < 14; delta++) {
 
-			dpos = ((1 << delta) - 1) * histogram::block_size;
+			dpos = ((1 << delta) - 1) * histogram<K>::block_size;
 
-			long nextpos = std::min(pos+dpos, std::max(pos, sz-histogram::block_size));
+			long nextpos = std::min(pos+dpos, std::max(pos, sz-histogram<K>::block_size));
 
 			if(fseek(fp, nextpos, SEEK_SET) == -1)
 				throw std::runtime_error(std::string("fseek(...) failed: ") + strerror(errno));
@@ -143,14 +147,12 @@ void abridge(FILE *fp, FILE *gp, double threshold) {
 	fclose(gp);
 }
 
-void abridge(const fs::path& p, double threshold) {
-	if(fs::is_regular_file(p)) {
-		FILE *fp = fopen(p.c_str(), "r");
-		if(fp == nullptr)
-			throw std::runtime_error(std::string("failed to open ") + p.string());
-		abridge(fp, stdout, threshold);
-		fclose(fp);
-	}
+template <size_t K> void abridge(const fs::path& p, double threshold) {
+	FILE *fp = fopen(p.c_str(), "r");
+	if(fp == nullptr)
+		throw std::runtime_error(std::string("failed to open ") + p.string());
+	abridge<K>(fp, stdout, threshold);
+	fclose(fp);
 }
 
 const char * version() {
@@ -159,38 +161,84 @@ const char * version() {
 	return string;
 }
 
+struct option {
+	const char *flag;
+	const char *desc;
+};
+
+std::list<option> options = {
+	{ "v", "verbose" },
+	{ "V", "version" },
+	{ "h", "help" },
+	{ "b:", "blocksize -- default: 16384, valid: 256, 16384, 65536" },
+	{ "s:", "score -- default: 0.90" }
+};
+
 void usage(char *prog) {
-	std::cerr << std::endl << "usage: " << basename(prog) << " [--{help|verbose|version}] filename score" << std::endl << std::endl;
+	std::cerr << std::endl << "usage: " << basename(prog) << " [options] filename" << std::endl << std::endl;
+	for(auto o : options)
+		std::cerr << '\t' << '-' << o.flag[0] << (o.flag[1] == ':' ? " ARG" : "    ") << '\t' << o.desc << std::endl;
+	std::cerr << std::endl;
 	std::cerr << version() << std::endl;
 	std::cerr << "report bugs to <aempirei@gmail.com>" << std::endl << std::endl;
 }
 
 int main(int argc,char **argv) { 
+
+	double score = 0.9;
+	unsigned int blocksize = 16384;
+
 	auto program = argv[0];
-	int argsat = 1;
+	std::string flags = "";
 
-	if(argc < 2 or strcmp(argv[argsat], "--help") == 0) {
+	for(auto o : options)
+		flags += o.flag;
+
+	int opt;
+
+    while ((opt = getopt(argc, argv, flags.c_str())) != -1) {
+
+        switch (opt) {
+			case 's':
+				score = strtod(optarg, nullptr);
+				break;
+			case 'b':
+				blocksize = strtoul(optarg, NULL, 0);
+				break;
+			case 'V':
+				std::cerr << version() << std::endl;
+				exit(EXIT_SUCCESS);
+			case 'v':
+				verbose = !verbose;
+				break;
+			case 'h':
+				usage(program);
+				exit(EXIT_SUCCESS);
+        }
+    }
+
+	if(optind >= argc) {
 		usage(program);
 		exit(EXIT_FAILURE);
-	} else if(strcmp(argv[argsat], "--version") == 0) {
-		std::cerr << version() << std::endl;
-		exit(EXIT_SUCCESS);
-	} else if(strcmp(argv[argsat], "--verbose") == 0) {
-		argsat++;
-	} else {
+
+
+	}
+	if(not verbose)
 		fclose(stderr);
-	}
 
-	if(argc - argsat != 2) {
-		usage(program);
-		exit(EXIT_FAILURE);
-	}
+	std::cerr << "score threshold = " << score << std::endl;
+	std::cerr << "block size = " << blocksize << std::endl;
 
-	auto filename = argv[argsat++];
-	double score = strtod(argv[argsat++], nullptr);
+	auto filename = argv[optind];
 
-	abridge(filename, score);
+	if(blocksize == 256)
+		abridge<256>(filename, score);
+	else if(blocksize == 16384)
+		abridge<16384>(filename, score);
+	else if(blocksize == 65536)
+		abridge<65536>(filename, score);
+	else
+		throw std::range_error("unsupported block size of " + std::to_string(blocksize));
 
 	return 0;
 }
-
