@@ -7,6 +7,7 @@
 #include <cstring>
 #include <libgen.h>
 
+#include <cassert>
 #include <cmath>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -43,15 +44,15 @@ template <typename T> class basic_histogram {
 			total = 0;
 		}
 		void write_block(FILE *fp) const {
-			if(fwrite(block, type_size, block_N, fp) != block_N)
+			if(fwrite(block, type_size, N(), fp) != N())
 				throw std::runtime_error(std::string("fwrite() failed: ") + strerror(errno));
 		}
 		void build_model(FILE *fp) {
 			reset();
 			if((block_N = fread(block, type_size, block_nmemb, fp)) != block_nmemb)
 				if(not feof(fp))
-					throw std::runtime_error(std::string("fread failed: ") + strerror(errno));
-			for(size_t n = 0; n < block_N; n++)
+					throw std::runtime_error(std::string("fread(...) failed: ") + strerror(errno));
+			for(size_t n = 0; n < N(); n++)
 				see(block[n]);
 		}
 		void see(value_type x) {
@@ -78,49 +79,64 @@ using histogram = basic_histogram<uint8_t>;
 static_assert(std::is_trivially_copyable<histogram>::value, "histogram isn't trivially copyable");
 
 void abridge(FILE *fp, FILE *gp, double threshold) {
+
 	long sz;
-	long pos = 0;
+	long pos;
+	long dpos;
+
+	auto msg = [&pos, &dpos]() -> auto& { return (std::cerr << '[' << pos << '+' << dpos << "] "); };
+
 	histogram local_model;
 	histogram trial_model;
 
 	fseek(fp, 0, SEEK_END);
 	sz = ftell(fp);
-	fseek(fp, pos, SEEK_SET);
+	fseek(fp, 0, SEEK_SET);
 
-	std::cerr << "building local model at " << pos << '/' << sz << std::endl;
+	pos = ftell(fp);
+	dpos = 0;
+
+	msg() << "building model at " << ftell(fp) << std::endl;
 	local_model.build_model(fp);
-	std::cerr << "writing block with " << local_model.N() << " elements" << std::endl;
+	msg() << "writing block with " << local_model.N() << " elements" << std::endl;
 	local_model.write_block(gp);
 
-	while(pos < sz - histogram::block_size) {
+	pos = ftell(fp);
 
+	msg() << "starting position" << std::endl;
+
+	while(pos < sz) {
 		for(int delta = 0; delta < 14; delta++) {
 
-			long dpos = (1 << delta) * histogram::block_size;
-			dpos = std::min(dpos + pos, sz - histogram::block_size);
-			if(fseek(fp, dpos, SEEK_SET) == -1)
-				throw std::runtime_error(std::string("fseek(fp,...) failed: ") + strerror(errno));
-			pos = ftell(fp);
-			std::cerr << "building trial model at " << pos << '/' << sz << std::endl;
+			dpos = ((1 << delta) - 1) * histogram::block_size;
+
+			long nextpos = std::min(pos+dpos, std::max(pos, sz-histogram::block_size));
+
+			if(fseek(fp, nextpos, SEEK_SET) == -1)
+				throw std::runtime_error(std::string("fseek(...) failed: ") + strerror(errno));
+
+			msg() << "building model at " << ftell(fp) << '/' << sz << std::endl;
+
 			trial_model.build_model(fp);
-			pos = ftell(fp);
-			if(pos == sz) {
-				std::cerr << "breaking, eof" << std::endl;
+
+			if(feof(fp) or ftell(fp) == sz) {
+				msg() << "breaking" << (feof(fp) ? "" : " perfectly") <<  ", eof after model" << std::endl;
 				break;
 			}
 
 			double score = local_model * trial_model;
 
-			std::cerr << "score := " << score << std::endl;
+			msg() << "score := " << score << std::endl;
 			if(score < threshold) {
-				std::cerr << "breaking, score < " << threshold << std::endl;
+				msg() << "breaking, score < " << threshold << std::endl;
 				break;
 			}
 		}
+
 		pos = ftell(fp);
-		std::cerr << "promoting trial model to local model" << std::endl;
+		msg() << "promoting trial model to local model" << std::endl;
 		local_model = trial_model;
-		std::cerr << "writing block with " << local_model.N() << " elements" << std::endl;
+		msg() << "writing block with " << local_model.N() << " elements" << std::endl;
 		local_model.write_block(gp);
 	}
 
