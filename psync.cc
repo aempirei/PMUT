@@ -152,7 +152,7 @@ void sync_file(const char *filename) {
 				snprintf(secs, sizeof(secs), "%.1fs", dt.count());
 				std::cout << xy_save << "written " << state::total << " bytes (" << human(state::total) << "B)" <<
 					" :: data rate " << rs <<
-					" :: elapsed time " << secs << 's' << clear_eol << xy_restore << xy_save << std::flush;
+					" :: elapsed time " << secs << clear_eol << xy_restore << xy_save << std::flush;
 			}
 		}
 	}
