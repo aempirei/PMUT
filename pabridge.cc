@@ -14,8 +14,6 @@
 #include <sys/stat.h>
 #include <type_traits>
 
-#include "version.h"
-
 namespace fs = std::filesystem;
 
 bool verbose = false;
@@ -157,7 +155,7 @@ template <size_t K> void abridge(const fs::path& p, double threshold) {
 
 const char * version() {
 	static char string[80];
-	snprintf(string, sizeof(string), "PMUT/%s version %s", "pcopy", PMUTVERSION);
+	snprintf(string, sizeof(string), "PMUT/%s version %s", PROGRAM, VERSION);
 	return string;
 }
 

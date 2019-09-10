@@ -4,7 +4,7 @@ CFLAGS = -O2 -pedantic
 CXXFLAGS = -O2 -pedantic --std=gnu++17
 CPPFLAGS = -Wall -I. -DVERSION=\"$(file < VERSION)\" -DPROGRAM=\"$(basename $(notdir $@))\"
 CTARGETS = pgetch purlencode pidler ptoilet pioperf
-CXXTARGETS = pcopy psync
+CXXTARGETS = pcopy psync pabridge
 SCRIPTS = pf ptemplate pextract pcols pjoin pid3tag prename pcd pmore
 MODULES = PMUT
 INSTALL_PATH = /usr/local/bin
