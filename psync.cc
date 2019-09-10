@@ -16,7 +16,6 @@
 
 #include <numeric>
 #include <chrono>
-#include <filesystem>
 #include <iostream>
 #include <string>
 
@@ -34,15 +33,13 @@
 #include <sys/file.h>
 #include <libgen.h>
 
-namespace fs = std::filesystem;
-
 std::string human(double sz) {
 	const char pre[] = " kMGTPEZY";
 	constexpr int bits = 10;
 	constexpr int base = 1 << bits;
 	char buf[64];
 	uint8_t index = (uint8_t)floor(log2(sz) / bits);
-	snprintf(buf, sizeof(buf), "%.3g", (double)sz / pow(base, index));
+	snprintf(buf, sizeof(buf), "%.1f", (double)sz / pow(base, index));
 	return index > 0 ? std::string(buf) + pre[index] : std::string(buf);
 }
 
@@ -82,7 +79,7 @@ namespace state {
 	int err = 0;
 	bool create;
 	bool success = false;
-	fs::path to;
+	std::string to;
 	unsigned long total;
 }
 
@@ -105,7 +102,7 @@ void cleanup() {
 		close(state::fd);
 		if(state::create and not state::success) {
 			std::cout << "removing created partial file" << std::endl;
-			fs::remove(state::to);
+			unlink(state::to.c_str());
 		}
 	}
 
@@ -114,16 +111,17 @@ void cleanup() {
 
 void sync_file(const char *filename) {
 
-	constexpr int buffer_size = 512;
+	constexpr int buffer_size = 1 << 18;
 	char buffer[buffer_size];
 	state::to = filename;
-	state::create = not fs::exists(state::to);
+	struct stat sb;
+	state::create = (stat(state::to.c_str(), &sb) == -1 and errno == ENOENT);
 
 	atexit(cleanup);
 
 	std::cout << cursor_off << std::flush;
 
-	if((state::fd = open(state::to.string().c_str(), O_WRONLY | O_SYNC | O_CREAT, 0755)) != -1) {
+	if((state::fd = open(state::to.c_str(), O_WRONLY | O_SYNC | O_CREAT, 0755)) != -1) {
 
 		if(flock(state::fd, LOCK_EX | LOCK_NB) != -1) {
 
@@ -149,10 +147,12 @@ void sync_file(const char *filename) {
 				state::total += n;
 				auto rs = rate(state::total, start_time);
 				auto current_time = std::chrono::steady_clock::now();
+				char secs[16];
 				std::chrono::duration<double> dt = current_time - start_time;
-				std::cout << xy_save << "written " << state::total << " bytes (" << human(state::total) << "B) :: " <<
-					"data rate " << rs << " " <<
-					":: elapsed time " << dt.count() << 's' << clear_eol << xy_restore << xy_save << std::flush;
+				snprintf(secs, sizeof(secs), "%.1fs", dt.count());
+				std::cout << xy_save << "written " << state::total << " bytes (" << human(state::total) << "B)" <<
+					" :: data rate " << rs <<
+					" :: elapsed time " << secs << 's' << clear_eol << xy_restore << xy_save << std::flush;
 			}
 		}
 	}

@@ -2,7 +2,7 @@ CC = gcc
 CXX = g++-8
 CFLAGS = -O2 -pedantic
 CXXFLAGS = -O2 -pedantic --std=gnu++17
-CPPFLAGS = -Wall -I. -DVERSION=\"$(file < VERSION)\" -DPROGRAM=\"$(basename $(notdir $@))\"
+CPPFLAGS = -Wall -I. -DVERSION=\"1.31xxx\" -DPROGRAM=\"$(basename $(notdir $@))\"
 CTARGETS = pgetch purlencode pidler ptoilet pioperf
 CXXTARGETS = pcopy psync pabridge
 SCRIPTS = pf ptemplate pextract pcols pjoin pid3tag prename pcd pmore
@@ -39,7 +39,7 @@ $(CTARGETS): % : %.o
 	$(CC) $(CFLAGS) -o $@ $< -lm
 
 $(CXXTARGETS): % : %.o
-	$(CXX) $(CFLAGS) -o $@ $< -lstdc++fs -lm
+	$(CXX) $(CFLAGS) -o $@ $< -lm
 
 clean:
 	if [ -f PMUT/Makefile ]; then ( cd PMUT ; make clean ); fi
