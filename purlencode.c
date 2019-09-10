@@ -25,13 +25,11 @@
 #include <ctype.h>
 #include <libgen.h>
 
-#include "version.h"
-
 const char *
 version()
 {
    static char string[80];
-   snprintf(string, sizeof(string), "PMUT/%s version %s", "purlencode", PMUTVERSION);
+   snprintf(string, sizeof(string), "PMUT/%s version %s", PROGRAM, VERSION);
    return string;
 }
 

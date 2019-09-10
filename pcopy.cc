@@ -26,12 +26,10 @@
 #include <sys/stat.h>
 #include <libgen.h>
 
-#include "version.h"
-
 namespace config {
 		bool sync = false;
 		bool verbose = false;
-};
+}
 
 const char *bytestr(size_t sz) {
 
@@ -247,7 +245,7 @@ cleanup:
 
 const char * version() {   
 	static char string[80];
-	snprintf(string, sizeof(string), "PMUT/%s version %s", "pcopy", PMUTVERSION);
+	snprintf(string, sizeof(string), "PMUT/%s version %s", PROGRAM, VERSION);
 	return string;
 }
 

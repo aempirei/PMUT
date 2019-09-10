@@ -26,8 +26,6 @@
 #include <math.h>
 #include <libgen.h>
 
-#include "version.h"
-
 #define MIN(a,b) ((a)<(b)?(a):(b))
 
 enum PATTERN { pzero = 0, pone = 1, prandom, pchargen, pmin = pzero, pmax = pchargen };
@@ -213,7 +211,7 @@ void wipe_file(const char *fn, enum PATTERN pattern) {
 
 const char * version() {   
 	static char string[80];
-	snprintf(string, sizeof(string), "PMUT/%s version %s", "ptoilet", PMUTVERSION);
+	snprintf(string, sizeof(string), "PMUT/%s version %s", PROGRAM, VERSION);
 	return string;
 }
 

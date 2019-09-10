@@ -31,7 +31,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <libgen.h>
-#include "version.h"
 
 struct termios t, s;
 
@@ -52,7 +51,7 @@ const char *
 version()
 {
    static char string[80];
-   snprintf(string, sizeof(string), "PMUT/%s version %s", "pgetch", PMUTVERSION);
+   snprintf(string, sizeof(string), "PMUT/%s version %s", PROGRAM, VERSION);
    return string;
 }
 
