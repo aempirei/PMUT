@@ -39,7 +39,7 @@ $(CTARGETS): % : %.o
 	$(CC) $(CFLAGS) -o $@ $< -lm
 
 $(CXXTARGETS): % : %.o
-	$(CXX) $(CFLAGS) -o $@ $< -lm
+	$(CXX) $(CFLAGS) -o $@ $< -lm -lstdc++fs
 
 clean:
 	if [ -f PMUT/Makefile ]; then ( cd PMUT ; make clean ); fi

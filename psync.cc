@@ -111,7 +111,7 @@ void cleanup() {
 
 void sync_file(const char *filename) {
 
-	constexpr int buffer_size = 1 << 18;
+	constexpr int buffer_size = 1 << 20;
 	char buffer[buffer_size];
 	state::to = filename;
 	struct stat sb;
