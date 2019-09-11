@@ -51,6 +51,7 @@ std::string rate(size_t sz, const std::chrono::time_point<std::chrono::steady_cl
 
 int write2(int fd, const void *buf, size_t buf_sz) {
 
+	ssize_t maxn = 0;
 	ssize_t left, done, n;
 	const char *p;
 
@@ -66,12 +67,14 @@ int write2(int fd, const void *buf, size_t buf_sz) {
 				continue;
 			return -1;
 		}
+		if(n > maxn)
+			maxn = n;
 
 		left -= n;
 		done += n;
 	}
 
-	return 0;
+	return maxn;
 }
 
 namespace state {
@@ -131,6 +134,7 @@ void sync_file(const char *filename) {
 
 			for(;;) {
 				ssize_t n = read(STDIN_FILENO, buffer, sizeof(buffer));
+				ssize_t k;
 				switch(n) {
 					case -1:
 						if(errno == EINTR || errno == EAGAIN)
@@ -140,7 +144,7 @@ void sync_file(const char *filename) {
 						state::success = true;
 						return;
 					default:
-						if(write2(state::fd, buffer, n) == -1)
+						if((k = write2(state::fd, buffer, n)) == -1)
 							return;
 						break;
 				}
@@ -150,7 +154,7 @@ void sync_file(const char *filename) {
 				char secs[16];
 				std::chrono::duration<double> dt = current_time - start_time;
 				snprintf(secs, sizeof(secs), "%.1fs", dt.count());
-				std::cout << xy_save << "written " << state::total << " bytes (" << human(state::total) << "B)" <<
+				std::cout << xy_save << "written \u0394" << n << ',' << k << " \u03a3" << state::total << " bytes (" << human(state::total) << "B)" <<
 					" :: data rate " << rs <<
 					" :: elapsed time " << secs << clear_eol << xy_restore << xy_save << std::flush;
 			}
