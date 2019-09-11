@@ -39,7 +39,9 @@ std::string human(double sz) {
 	constexpr int base = 1 << bits;
 	char buf[64];
 	uint8_t index = (uint8_t)floor(log2(sz) / bits);
-	snprintf(buf, sizeof(buf), "%.1f", (double)sz / pow(base, index));
+	double lead = (double)sz / pow(base, index);
+	int d = ceil(log10(lead));
+	snprintf(buf, sizeof(buf), "%.*f", d > 3 ? 0 : (3 - d), (double)sz / pow(base, index));
 	return index > 0 ? std::string(buf) + pre[index] : std::string(buf);
 }
 
@@ -94,6 +96,8 @@ const char *clear_eol = "\033[K";
 
 void cleanup() {
 
+	std::cout << std::endl;
+
 	if(not state::success) {
 		std::cout << "failed";
 		if(state::err != 0)
@@ -114,7 +118,7 @@ void cleanup() {
 
 void sync_file(const char *filename) {
 
-	constexpr int buffer_size = 1 << 20;
+	constexpr int buffer_size = 1 << 16;
 	char buffer[buffer_size];
 	state::to = filename;
 	struct stat sb;
@@ -128,7 +132,7 @@ void sync_file(const char *filename) {
 
 		if(flock(state::fd, LOCK_EX | LOCK_NB) != -1) {
 
-			std::cout << (state::create ? "created" : "opened") << ' ' << state::to << " :: " << std::flush;
+			std::cout << (state::create ? "created" : "opened") << ' ' << state::to << " ::" << std::flush;
 
 			auto start_time = std::chrono::steady_clock::now();
 
@@ -154,9 +158,13 @@ void sync_file(const char *filename) {
 				char secs[16];
 				std::chrono::duration<double> dt = current_time - start_time;
 				snprintf(secs, sizeof(secs), "%.1fs", dt.count());
-				std::cout << xy_save << "written \u0394" << n << ',' << k << " \u03a3" << state::total << " bytes (" << human(state::total) << "B)" <<
-					" :: data rate " << rs <<
-					" :: elapsed time " << secs << clear_eol << xy_restore << xy_save << std::flush;
+				std::cout << xy_save <<
+					" read " << n <<
+					" write " << k <<
+					" \u03a3" << human(state::total) << 'B' <<
+					" data rate " << rs <<
+					" elapsed time " << secs <<
+					clear_eol << xy_restore << xy_save << std::flush;
 			}
 		}
 	}
