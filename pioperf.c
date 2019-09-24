@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,11 +37,13 @@ int main(int argc, char **argv) {
 	double rate;
 	const char *suffix = "";
 	int fd;
+	char mode;
+	const char *filename;
 
 	struct timeval tv1, tv2, dtv;
 
-	if(argc > 2)
-		data_sz = 1 << strtoul(argv[2], NULL, 0);
+	if(argc > 3)
+		data_sz = 1 << strtoul(argv[3], NULL, 0);
 
 	if(data_sz < buf_sz)
 		data_sz = buf_sz;
@@ -54,15 +57,19 @@ int main(int argc, char **argv) {
 	for(ssize_t n = 0; n < long_num; n++)
 		((long *)buf)[n] = random();
 	
-	if(argc < 2) {
-		fprintf(stderr, "\nusage: %s filename [log2_datasize]\n\n", basename(*argv));
+	if(argc < 3) {
+		fprintf(stderr, "\nusage: %s {d|s|n} filename [log2_datasize]\n\n", basename(*argv));
 		exit(EXIT_FAILURE);
 	}
 
-	printf("datasize = %ld (log2 %.1f)\n", (long)data_sz, log2(data_sz));
-	printf("filename = %s\n", argv[1]);
+	filename = argv[2];
+	mode = tolower(*argv[1]);
 
-	fd = open(argv[1], O_CREAT | O_SYNC | O_WRONLY, 0600);
+	printf("datasize = %ld (log2 %.1f)\n", (long)data_sz, log2(data_sz));
+	printf("filename = %s\n", filename);
+	printf("mode = %s\n", mode == 'd' ? "DSYNC" : mode == 's' ? "SYNC" : "NOSYNC");
+
+	fd = open(filename, O_CREAT | (mode == 'd' ? O_DSYNC : mode == 's' ? O_SYNC : 0) | O_WRONLY, 0600);
 	if(fd == -1) {
 		perror("open(...)");
 		exit(EXIT_FAILURE);
@@ -98,7 +105,7 @@ int main(int argc, char **argv) {
 	printf("%.3g%sB/sec\n", rate, suffix);
 
 	close(fd);
-	unlink(argv[1]);
+	unlink(argv[2]);
 
 	exit(EXIT_SUCCESS);
 }
