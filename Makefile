@@ -1,5 +1,5 @@
 CC = gcc
-CXX = g++-8
+CXX = g++
 CFLAGS = -O2 -pedantic
 CXXFLAGS = -O2 -pedantic --std=gnu++17
 CPPFLAGS = -Wall -I. -DVERSION=\"1.31xxx\" -DPROGRAM=\"$(basename $(notdir $@))\"
