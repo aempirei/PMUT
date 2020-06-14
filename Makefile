@@ -1,7 +1,7 @@
 CC = gcc
-CXX = g++
+CXX = g++-8
 CFLAGS = -O2 -pedantic
-CXXFLAGS = -O2 -pedantic --std=gnu++17
+CXXFLAGS = -O2 -pedantic --std=gnu++17 -lstdc++fs
 CPPFLAGS = -Wall -I. -DVERSION=\"1.31xxx\" -DPROGRAM=\"$(basename $(notdir $@))\"
 CTARGETS = pgetch purlencode pidler ptoilet pioperf
 CXXTARGETS = pcopy psync pabridge
