@@ -1,0 +1,8 @@
+#!/usr/bin/ruby
+
+re = eval "\"#{ARGV.shift}\""
+delim = "\t"
+
+STDIN.readlines.each do |line|
+	puts line.chomp.scan(re).join(delim)
+end
