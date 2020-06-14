@@ -1,9 +1,35 @@
 #!/usr/bin/ruby
 
+def usage
+	print <<~USAGE
+	usage: #{File.basename __FILE__} split scan join mode
+
+	split := regex
+	scan := regex
+	join := string
+	mode := "only" | "all" | "revert"
+	USAGE
+	exit
+end
+
+usage if ARGV.empty?
+
 re1 = Regexp.new(ARGV.shift)
 re2 = Regexp.new(ARGV.shift)
 delim = ARGV.shift
+mode = ARGV.shift.downcase.to_sym
 
 STDIN.read.split(re1).each do |line|
-	puts line.chomp.scan(re2).join(delim)
+	m = line.chomp!.scan(re2)
+	case mode
+	when :only
+		puts m.join(delim) unless m.empty?
+	when :all
+		puts m.join(delim)
+	when :revert
+		if m.empty?
+			puts line
+		else
+			puts m.join(delim)
+	end
 end
