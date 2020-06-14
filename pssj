@@ -31,5 +31,6 @@ STDIN.read.split(re1).each do |line|
 			puts line
 		else
 			puts m.join(delim)
+		end
 	end
 end
