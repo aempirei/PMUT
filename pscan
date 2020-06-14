@@ -1,8 +1,0 @@
-#!/usr/bin/ruby
-
-re = Regexp.new(ARGV.shift)
-delim = "\t"
-
-STDIN.readlines.each do |line|
-	puts line.chomp.scan(re).join(delim)
-end

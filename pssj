@@ -1,0 +1,9 @@
+#!/usr/bin/ruby
+
+re1 = Regexp.new(ARGV.shift)
+re2 = Regexp.new(ARGV.shift)
+delim = ARGV.shift
+
+STDIN.read.split(re1).each do |line|
+	puts line.chomp.scan(re2).join(delim)
+end
