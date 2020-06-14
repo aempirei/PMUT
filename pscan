@@ -1,6 +1,6 @@
 #!/usr/bin/ruby
 
-re = eval "\"#{ARGV.shift}\""
+re = Regexp.new(ARGV.shift)
 delim = "\t"
 
 STDIN.readlines.each do |line|
