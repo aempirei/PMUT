@@ -183,9 +183,6 @@ bool write2(int fd, const void *buf, size_t buf_sz) {
 
 	while(left) {
 		auto n = write(fd, p, left);
-
-		std::cout << "Write size " << n;
-
 		if(n == -1) {
 			if(errno == EINTR)
 				continue;
