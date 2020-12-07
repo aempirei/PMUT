@@ -6,7 +6,7 @@
  * copy with verbose status indicator.
  *
  * Copyright(c) 2015 by Christopher Abad
- * aempirei@gmail.com
+ * aempireiegmail.com
  *
  * this code is licensed under the "don't be a retarded asshole" license.
  * if i don't like how you use this software i can tell you to fuck off
@@ -15,6 +15,7 @@
  */
 #include <atomic>
 #include <iostream>
+#include <filesystem>
 #include <iomanip>
 #include <cstdlib>
 #include <cstdio>
@@ -38,7 +39,7 @@ namespace config {
 		bool verbose = false;
 		bool normal = true;
 		std::atomic_bool resize = true;
-		std::atomic_bool goodbye = false;
+		std::atomic_bool interrupted = false;
 		unsigned int columns;
 }
 
@@ -84,7 +85,7 @@ void install_signal_handlers() {
 
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
-    sa.sa_handler = [](int sig) { config::goodbye = true; };
+    sa.sa_handler = [](int sig) { config::interrupted = true; };
 
 
     if (sigaction(SIGINT, &sa, nullptr) == -1)
@@ -126,9 +127,11 @@ void print_bar(size_t n, size_t N, size_t size, time_t dt, size_t chunk_size) {
 
 	static state z0;
 
-	state z { .n = n, .N = N, .size = size, .pos = size * n / N, .dt = dt };
-	
-	if(z.dt > z0.dt or z.n - z0.n >= chunk_size)
+#define T(X) ((X)>0?(X):1)
+	state z { .n = T(n), .N = N, .size = size, .pos = size * n / T(N), .dt = T(dt) };
+#undef T
+
+	if(z.dt > z0.dt or z.n > z0.n)
 		print_bar0(z);
 
 	z0 = z;
@@ -143,11 +146,10 @@ void print_bar0(const state& z) {
 	const auto& dt = z.dt;
 
 	unsigned int dn = n / dt;
-
 	long bytes_left = N - n;
 	long approx_secs_left = bytes_left * dt / n;
 
-	std::cout << '[';
+	std::cout << ansi::rclpos << std::endl << '[';
 
 	if(size > 3) {
 
@@ -169,7 +171,9 @@ void print_bar0(const state& z) {
 	auto mm = (approx_secs_left / 60) % 60;
 	auto hh = approx_secs_left / 3600;
 
-	std::cout << hh << "h " << mm << "m " << ss << "s remaining @ " << bytestr(dn) << "/sec" << ansi::clreol << std::endl;
+	std::cout << "copied " << bytestr(n) << " of " << bytestr(N) << " (" << (100 * n / N) << "%) : ";
+
+	std::cout << hh << "h " << mm << "m " << ss << "s remaining @ " << bytestr(dn) << "/sec" << ansi::clreol;
 }
 
 bool write2(int fd, const void *buf, size_t buf_sz) {
@@ -179,6 +183,8 @@ bool write2(int fd, const void *buf, size_t buf_sz) {
 
 	while(left) {
 		auto n = write(fd, p, left);
+
+		std::cout << "Write size " << n;
 
 		if(n == -1) {
 			if(errno == EINTR)
@@ -197,8 +203,6 @@ bool copy_block(int src, int dst, size_t block_sz, size_t chunk_sz) {
 
 		char *chunk = new char[chunk_sz];
 
-		size_t num_reads = 0;
-
 		size_t left, done;
 		time_t start, dt;
 
@@ -209,7 +213,7 @@ bool copy_block(int src, int dst, size_t block_sz, size_t chunk_sz) {
 		done = 0;
 		left = block_sz;
 
-		while(left and not config::goodbye) {
+		while(left and not config::interrupted) {
 
 			if(config::resize) {
 				config::columns = columns();
@@ -223,17 +227,13 @@ bool copy_block(int src, int dst, size_t block_sz, size_t chunk_sz) {
 				goto cleanup;
 			}
 
-			num_reads++;
-			
-				if(not write2(dst, chunk, n))
-					goto cleanup;
+			if(not write2(dst, chunk, n))
+				goto cleanup;
 
 			left -= n;
 			done += n;
 
 			dt = std::time(nullptr) - start;
-
-			std::cout << ansi::rclpos << std::endl;
 
 			print_bar(done, block_sz, config::columns - 20, dt, chunk_sz);
 		}
@@ -249,14 +249,19 @@ cleanup:
 
 bool copy_file(const char *src, const char *dst) {
 
-		const int chunk_sz = 1 << 16;
+		const int chunk_sz = 1 << 13;
 
 		struct stat st;
 		int fdsrc = -1;
 		int fddst = -1;
 		bool success = false;
 
-		std::cout << ansi::hide << '\r' << ansi::clreol << std::flush;
+		std::cout << ansi::hide;
+
+		for(int i = 0; i < 10; i++)
+			std::cout << ansi::up << ansi::clreol;
+
+		std::cout << std::endl << src << " -> " << dst << ansi::stopos << std::flush;
 
 		fdsrc = open(src, O_RDONLY);
 		if(fdsrc == -1)
@@ -272,7 +277,7 @@ bool copy_file(const char *src, const char *dst) {
 		if(fchmod(fddst, st.st_mode & 07777) == -1)
 				goto cleanup;
 
-		std::cout << src << " -> " << dst << " :: ";
+		std::cout << " :: ";
 
 		if(config::normal) {
 			std::cout << "normal ";
@@ -284,9 +289,7 @@ bool copy_file(const char *src, const char *dst) {
 			}
 		}
 
-		std::cout << "mode" << std::endl;
-
-		std::cout << ansi::stopos << std::endl;
+		std::cout << "mode" << ansi::stopos << std::endl;
 
 		success = copy_block(fdsrc, fddst, st.st_size, chunk_sz);
 
@@ -294,14 +297,17 @@ cleanup:
 
 		auto err = errno;
 
-		std::cout << ansi::rclpos << " : " << (success ? "completed" : "FAILED") << ansi::clreol << ansi::show << std::endl;
+		std::cout << ansi::rclpos << " : " << (config::interrupted ? "interrupted" : success ? "completed" : "failed");
+		if(not success)
+			std::cout << " (" << strerror(err) << ")";
+		std::cout << ansi::clreol << ansi::show << std::endl << std::endl << std::endl << std::endl;
 
 		if(fdsrc >= 0)
 			close(fdsrc);
 
 		if(fddst >= 0) {
 			close(fddst);
-			if(not success)
+			if(not success and std::filesystem::is_regular_file(dst))
 				unlink(dst);
 		}
 
@@ -310,7 +316,7 @@ cleanup:
 		return success;
 }
 
-std::string version() {   
+std::string version() {
 	std::stringstream ss;
 	ss << "PMUT/" << PROGRAM << " version " << VERSION;
 	return ss.str();
@@ -333,7 +339,7 @@ int main(int argc, char **argv) {
 
 	/* process options */
 
-	while ((opt = getopt(argc, argv, "sfdvhV?")) != -1) {
+	while ((opt = getopt(argc, argv, "sfdhV?")) != -1) {
 
 		switch (opt) {
 
