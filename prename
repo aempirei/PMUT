@@ -1,14 +1,22 @@
 #!/bin/bash
 
-if [ "$1" == "" ] || [ "$1" == "-h" ]; then
+function version () {
+	echo "PMUT/prename version $(pextract -V | pextract 'version (\S+)')"
+	exit
+}
+
+function usage () {
 	cat <<__EOF__
 
-usage: $0 [options] from_pcre to_pcre
+usage: $(basename $0) [options] from_pcre to_pcre
 
 from should be a pcre match pattern and the to should be the replace pattern.
 
 	-t	test only. only generate and print the mv commands
 		that would perform the rename
+	-g	use git mv instead of mv
+	-o	print old_filename new_filename as two tab seperated columns to STDOUT
+	-v	toggle verbose mode
 	-V	show version
 	-h	show this help
 
@@ -17,40 +25,52 @@ some usage examples are the following
 	prename '\.pl\$' '.php'
 	prename -t '^(.+)\.(.+)\$' '\2_\1.txt'
 
-PMUT/prename version `pextract -V | pextract 'version (\S+)'`
-report bugs to <aempirei@gmail.com>
-
 __EOF__
+	version
+}
 
-	exit
+function output {
+	IFS=$(echo -en "\t")
+	echo "$*"
+	unset IFS
+}
 
-elif [ "$1" == "-V" ]; then
+let verbose=0
+cmd='mv -v'
 
-    echo PMUT/prename version `pextract -V | pextract 'version (\S+)'`
-	exit
+while getopts "htgovV" opt
+do
+	case $opt in
+		t) cmd='echo mv -v' ;;
+		g) cmd='git mv' ;;
+		o) cmd='output' ;;
+		v) let 'verbose^=1' ;;
+		?|h) usage ;;
+		V) version ;;
+	esac
+done
+
+shift $((OPTIND-1))
+
+if [ "${#@}" -ne 2 ]; then
+	usage
 fi
-
-# check for test-only mode
-
-test=false
-
-if [ "$1" == "-t" ]; then
-	test=true
-	shift
-fi
-
-$test && echo '# test-mode'
 
 from="$1"
 to="$2"
 
-ls -d * | pcregrep "$from" | while read from_file; do
-	to_file=`echo "$from_file" | perl -pe "s/$from/$to/"`
-	if $test; then
-		echo mv -v "$from_file" "$to_file"
-	else
-		mv -v "$from_file" "$to_file"
-	fi
+if [ $verbose -ne 0 ]; then
+	echo args="$@"
+	echo '|args|='${#@}
+	echo cmd=$cmd
+	echo from=$from
+	echo to=$to
+fi
+
+find -mindepth 1 -maxdepth 1 | cut -c3- | pcregrep "$from" | while read from_file
+do
+	to_file=$(echo "$from_file" | perl -pe "s/$from/$to/")
+	$cmd "$from_file" "$to_file"
 done
 
 
