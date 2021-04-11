@@ -1,11 +1,11 @@
 CC = gcc
-CXX = g++-8
+CXX = g++
 CFLAGS = -O2 -pedantic
 CXXFLAGS = -O2 -pedantic --std=gnu++17 -lstdc++fs
 CPPFLAGS = -Wall -I. -DVERSION=\"1.31xxx\" -DPROGRAM=\"$(basename $(notdir $@))\"
 CTARGETS = pgetch purlencode pidler ptoilet pioperf
 CXXTARGETS = pcopy psync pabridge
-SCRIPTS = pf ptemplate pextract pcols pjoin pid3tag prename pcd pmore pssj
+SCRIPTS = pf ptemplate pextract pcols pjoin pid3tag prename pcd pmore pssj pscan
 MODULES = PMUT
 INSTALL_PATH = /usr/local/bin
 

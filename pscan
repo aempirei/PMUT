@@ -1,0 +1,11 @@
+#!/usr/bin/ruby
+def usage
+	STDOUT.puts "\nusage: #{File.basename $0} regex [delim]\n\n"
+	exit
+end
+usage if ARGV.empty?
+re = Regexp.new(ARGV.first)
+delim = ARGV.size < 2 ? ',' : ARGV.last
+STDIN.each_line do |line|
+	STDOUT.puts line.scan(re).join(delim)
+end
