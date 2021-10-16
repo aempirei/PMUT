@@ -128,7 +128,7 @@ void sync_file(const char *filename) {
 
 	std::cout << cursor_off << std::flush;
 
-	if((state::fd = open(state::to.c_str(), O_WRONLY | O_SYNC | O_CREAT, 0755)) != -1) {
+	if((state::fd = open(state::to.c_str(), O_WRONLY | O_CREAT, 0755)) != -1) {
 
 		if(flock(state::fd, LOCK_EX | LOCK_NB) != -1) {
 
