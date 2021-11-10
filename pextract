@@ -60,6 +60,7 @@ while(my $line = <STDIN>) {
 	$line = decode('utf-8-strict', $line) if(defined $utf8);
 	chomp $line;
 	if(my @matches = ($line =~ /$reg/i)) {
+		@matches = grep { defined $_; } @matches;
 		push @matches, $line if(defined $append);
 		@matches = map { encode('utf-8-strict', $_); } @matches if(defined $utf8);
 		@matches = map { uri_escape($_); } @matches if(defined $escape);
