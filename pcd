@@ -21,33 +21,44 @@ PCDRC="$HOME/.pcdrc"
 
 touch "$PCDRC"
 
+declare -A PCDMAP
+
 function s () {
 	if [ -z "$1" ]; then
-		echo an alias must be chosen
+		echo "${FUNCNAME[0]} expects a non-empty directory alias argument" 1>&2
 	elif [[ "$1" =~ ^- ]]; then
 		echo "directory aliases cannot begin with dash (\"-\")"
 	else
 		dir=`pwd`
 		echo saving directory alias "$1 => $dir"
-		echo "$1" "$dir" >> "$PCDRC"
+		PCDMAP[$1]="$dir"
+		declare -p PCDMAP > "$PCDRC"
+	fi
+}
+
+function E () {
+	if [ -n "$1" ]; then
+		if [ -v "PCDMAP[$1]" ]; then
+			unset PCDMAP[$1]
+			declare -p PCDMAP > "$PCDRC"
+		else
+			echo "unknown directory alias '$1'" 1>&2
+		fi
+	else
+			echo "${FUNCNAME[0]} expects a non-empty directory alias argument" 1>&2
 	fi
 }
 
 function d () {
-
-	local -A pcd
-
-	while read name dir; do
-		pcd[$name]="$dir"
-	done < "$PCDRC"
-
 	if [ -z "$1" ]; then
-		for name in "${!pcd[@]}"; do
-			printf "%8s: %s\n" "$name" "${pcd[$name]}"
+		for name in "${!PCDMAP[@]}"; do
+			printf "%8s: %s\n" "$name" "${PCDMAP[$name]}"
 		done
-	elif [ -n "${pcd[$1]}" ]; then
-		cd "${pcd[$1]}"
+	elif [ -v "PCDMAP[$1]" ]; then
+		cd "${PCDMAP[$1]}"
 	else
 		echo "unknown directory alias '$1'" 1>&2
 	fi
 }
+
+. "$PCDRC"
