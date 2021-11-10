@@ -39,6 +39,7 @@ function s () {
 function E () {
 	if [ -n "$1" ]; then
 		if [ -v "PCDMAP[$1]" ]; then
+			echo "erasing directory alias '$1' => ${PCDMAP[$1]}"
 			unset PCDMAP[$1]
 			declare -p PCDMAP > "$PCDRC"
 		else
