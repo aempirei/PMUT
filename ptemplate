@@ -81,18 +81,10 @@ while(my $line = <STDIN>) {
       my $output = $template;
 
 	  while($output =~ /^(.*?)\\(?:(\d+)|\{(\d+)\})(.*)$/) {
-		  if(defined($1)) {
-			  print $1;
-		  }
-		  if(defined($2) and int($2) >= 1 and int($2) <= $count) {
-			  print $params[int($2)-1];
-		  }
-		  if(defined($3) and int($3) >= 1 and int($3) <= $count) {
-			  print $params[int($3)-1];
-		  }
+		  print $1.$params[int(defined($2) ? $2 : $3) - 1];
 		  $output = $4;
 	  }
-	  print $output;
+	  print $output."\n";
    }
 }
 
