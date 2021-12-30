@@ -67,7 +67,7 @@ help(const char *prog)
    fputs("report bugs to <aempirei@gmail.com>\n\n", stderr);
 }
 
-const char *charmap(int ch) {
+const char *charmap(long ch) {
    static char charmaps[40];
 #define CMAP(a,b) if(ch==(a)) return(b)
    CMAP('\33', "ESC");
@@ -82,8 +82,9 @@ const char *charmap(int ch) {
    else CMAP('\177', "DEL");
    else CMAP(' ', "SPACE");
 #undef CMAP
-   else if (ch < 32) snprintf(charmaps, sizeof(charmaps), "CTRL-%c", 'A' + ch - 1);
-   else snprintf(charmaps, sizeof(charmaps), "%c", ch);
+   else if (ch < 32) snprintf(charmaps, sizeof(charmaps), "CTRL-%c", 'A' + (int)ch - 1);
+   else if (ch > 127) snprintf(charmaps, sizeof(charmaps), "U{%04lx}", ch);
+   else snprintf(charmaps, sizeof(charmaps), "%c", (int)ch);
    return charmaps;
 }
 
@@ -165,10 +166,56 @@ const char *escmap(const char *s) {
    return r;
 }
 
+int is_utf8_8bit(long ch) { return (ch & 0x80) == 0x00; }
+int is_utf8_byte(long ch) { return (ch & 0xc0) == 0x80; }
+int is_utf8_16bit(long ch) { return (ch & 0xe0) == 0xc0; }
+int is_utf8_24bit(long ch) { return (ch & 0xf0) == 0xe0; }
+int is_utf8_32bit(long ch) { return (ch & 0xf8) == 0xf0; }
+
+long getpress() {
+
+	int a, b, c, ch;
+
+	ch = getchar();
+
+	t.c_cc[VTIME] = 0;
+	t.c_cc[VMIN] = 0;
+	tcsetattr(0, TCSANOW, &t);
+
+	if(is_utf8_8bit(ch) || ch == EOF) {
+		/* NOP */
+	} else if(is_utf8_16bit(ch) && is_utf8_byte(a = getchar())) {
+			ch &= 0x1f;
+			a &= 0x3f;
+			ch <<= 6;
+			ch |= a;
+	} else if(is_utf8_24bit(ch) && is_utf8_byte(a = getchar()) && is_utf8_byte(b = getchar())) {
+			ch &= 0x0f;
+			a &= 0x3f;
+			b &= 0x3f;
+			ch <<= 12;
+			a <<= 6;
+			ch |= a | b;
+	} else if(is_utf8_32bit(ch) && is_utf8_byte(a = getchar()) && is_utf8_byte(b = getchar()) && is_utf8_byte(c = getchar())) {
+			ch &= 0x07;
+			a &= 0x3f;
+			b &= 0x3f;
+			c &= 0x3f;
+			ch <<= 18;
+			a <<= 12;
+			b <<= 6;
+			ch |= a | b| c;
+	} else {
+		ch = -1;
+	}
+
+	return ch;
+}
+
 int
 main(int argc, char **argv, char **envp)
 {
-   int ch;
+   long ch;
 
    int opt;
 
@@ -219,46 +266,36 @@ main(int argc, char **argv, char **envp)
    t.c_cc[VMIN] = 1;
    tcsetattr(0, TCSANOW, &t);
 
-   /*
-    * the only reason we're here! to get a single keystroke!
-    */
-
-   ch = getchar();
-
-   /*
-    *
-    * the reason i didnt put a switch statement here is im sick of looking at them
-    *
-    */
+   ch = getpress();
 
    if (ch == '\033') {
 
-      /*
-       * if an ESC was caught, put terminal mode into VMIN=0 so that if
-       * there are no keystrokes waiting in the buffer, then print ESC
-       * and exist, otherwise process the escape code
-       *
-       */
+	   char code[40];
 
-      char code[40];
-      char *p;
+	   ch = getpress();
 
-      t.c_cc[VTIME] = 0;
-      t.c_cc[VMIN] = 0;
-      tcsetattr(0, TCSANOW, &t);
+	   /*
+		* if an ESC was caught, put terminal mode into VMIN=0 so that if
+		* there are no keystrokes waiting in the buffer, then print ESC
+		* and exist, otherwise process the escape code
+		*
+		*/
+	   if(ch == -1) {
+		   fputs("ESC", stdout);
+	   } else if(ch == '[' || ch == 'O') {
+		   code[0] = ch;
+		   if(fgets(code + 1, sizeof(code) - 2, stdin))
+			   fputs(escmap(code), stdout);
+	   } else if(ch == '\033') {
+		   if(fgets(code, sizeof(code) - 1, stdin))
+			   printf("ALT-%s", escmap(code));
+	   } else {
+		   printf("ALT-%s", charmap(ch));
+	   }
 
-      p = fgets(code, sizeof(code) - 1, stdin);
-
-      if (p == NULL || strlen(p) == 0)
-         fputs("ESC", stdout);
-      else if(*p == '[' ||  *p == 'O')
-         fputs(escmap(p), stdout);
-      else if(*p == '\33')
-         printf("ALT-%s", escmap(p+1));
-      else
-         printf("ALT-%s", charmap(*p));
-
-   } else fputs(charmap(ch), stdout);
+   } else {
+	   fputs(charmap(ch), stdout);
+   }
 
    putchar('\n');
 

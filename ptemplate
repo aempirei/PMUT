@@ -79,38 +79,20 @@ while(my $line = <STDIN>) {
 
       my $count = scalar(@params);
       my $output = $template;
-      $i = 0;
 
-      unshift @params, sprintf("%d", $line_no);
-
-      while($i <= $count) {
-
-         # substitute any special escapes in the parameters so recursive replacement doesnt occur on their expansion
-
-         while($params[$i] =~ /(\\\d+)/) {
-
-            my $key = '<'.rand().".P$i.".rand().'>';
-            $subs{$key} = $1;
-            $params[$i] =~ s/\Q$1\E/$key/g;
-         }
-
-         # decode current special escape
-
-         $output =~ s/\\$i(?=\Z|$|\D)/$params[$i]/g;
-         $i++;
-      }
-
-      # substitute back the original strings for any special escape substitutions that occured
-
-      foreach my $key (keys(%subs)) {
-         my $value = $subs{$key};
-         print STDERR "REPLACING BACK : $key => $value\n";
-         $output =~ s/\Q$key\E/$value/g;
-      }
-
-      # print the final expanded template
-
-      print $output."\n";
+	  while($output =~ /^(.*?)\\(?:(\d+)|\{(\d+)\})(.*)$/) {
+		  if(defined($1)) {
+			  print $1;
+		  }
+		  if(defined($2) and int($2) >= 1 and int($2) <= $count) {
+			  print $params[int($2)-1];
+		  }
+		  if(defined($3) and int($3) >= 1 and int($3) <= $count) {
+			  print $params[int($3)-1];
+		  }
+		  $output = $4;
+	  }
+	  print $output;
    }
 }
 

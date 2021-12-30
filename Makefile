@@ -3,7 +3,7 @@ CXX = g++
 CFLAGS = -O2 -pedantic 
 CXXFLAGS = -O2 -pedantic --std=gnu++2a -lstdc++fs
 CPPFLAGS = -Wall -I. -DVERSION=\"1.31xxx\" -DPROGRAM=\"$(basename $(notdir $@))\"
-CTARGETS = pgetch purlencode pidler ptoilet pioperf
+CTARGETS = purlencode pidler ptoilet pioperf pgetch
 CXXTARGETS = pcopy psync pabridge
 SCRIPTS = pf ptemplate pextract pcols pjoin pid3tag prename pcd pmore pssj pscan
 MODULES = PMUT
