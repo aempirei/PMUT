@@ -59,18 +59,23 @@ fi
 from="$1"
 to="$2"
 
-if [ $verbose -ne 0 ]; then
+options=""
+if [ $verbose -ne 0 ]
+then
 	echo args="$@"
 	echo '|args|='${#@}
 	echo cmd=$cmd
 	echo from=$from
 	echo to=$to
+	options="-v"
 fi
 
 find -mindepth 1 -maxdepth 1 | cut -c3- | pcregrep "$from" | while read from_file
 do
 	to_file=$(echo "$from_file" | perl -pe "s/$from/$to/")
-	$cmd "$from_file" "$to_file"
+	to_dir=$(dirname "$to_file")
+	[ -d "$to_dir" ] || mkdir $options -p "$to_dir"
+	$cmd $options "$from_file" "$to_file"
 done
 
 
