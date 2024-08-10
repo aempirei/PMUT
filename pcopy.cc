@@ -17,6 +17,7 @@
 #include <iostream>
 #include <filesystem>
 #include <iomanip>
+#include <format>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -121,14 +122,15 @@ struct state {
 	size_t size = 0;
 	size_t pos = 0;
 	time_t dt = 0;
+	ssize_t last_sz = 0;
 };
 
-void print_bar(size_t n, size_t N, size_t size, time_t dt, size_t chunk_size) {
+void print_bar(size_t n, size_t N, size_t size, time_t dt, ssize_t last_sz) {
 
 	static state z0;
 
 #define T(X) ((X)>0?(X):1)
-	state z { .n = T(n), .N = N, .size = size, .pos = size * n / T(N), .dt = T(dt) };
+	state z { .n = T(n), .N = N, .size = size, .pos = size * n / T(N), .dt = T(dt), .last_sz = last_sz };
 #undef T
 
 	if(z.dt > z0.dt or z.n > z0.n)
@@ -176,29 +178,17 @@ void print_bar0(const state& z) {
 	std::cout << hh << "h " << mm << "m " << ss << "s remaining @ " << bytestr(dn) << "/sec" << ansi::clreol;
 }
 
-bool write2(int fd, const void *buf, size_t buf_sz) {
-
-	auto left = buf_sz;
-	auto p = static_cast<const char *>(buf);
-
-	while(left) {
-		auto n = write(fd, p, left);
-		if(n == -1) {
-			if(errno == EINTR)
-				continue;
-			return false;
-		}
-
-		left -= n;
-		p += n;
-	}
-
-	return true;
-}
-
 bool copy_block(int src, int dst, size_t block_sz, size_t chunk_sz) {
 
-		char *chunk = new char[chunk_sz];
+		char *chunk_base = new char[chunk_sz * 2];
+		char *chunk = chunk_base;
+		static_assert(sizeof(size_t) == sizeof(char *));
+		size_t extra = reinterpret_cast<size_t>(chunk) % chunk_sz;
+		size_t adjust = chunk_sz - extra;
+		chunk += adjust;
+		std::cout << "forwarding chunk by " << std::dec << adjust << " bytes to " << std::showbase << std::hex << reinterpret_cast<size_t>(chunk);
+		std::cout << ansi::stopos << std::endl;
+		std::cout << std::noshowbase << std::dec;
 
 		size_t left, done;
 		time_t start, dt;
@@ -224,7 +214,7 @@ bool copy_block(int src, int dst, size_t block_sz, size_t chunk_sz) {
 				goto cleanup;
 			}
 
-			if(not write2(dst, chunk, n))
+			if(write(dst, chunk, n) != n)
 				goto cleanup;
 
 			left -= n;
@@ -232,21 +222,21 @@ bool copy_block(int src, int dst, size_t block_sz, size_t chunk_sz) {
 
 			dt = std::time(nullptr) - start;
 
-			print_bar(done, block_sz, config::columns - 20, dt, chunk_sz);
+			print_bar(done, block_sz, config::columns - 20, dt, n);
 		}
 
 		success = true;
 
 cleanup:
 
-		delete[] chunk;
+		delete[] chunk_base;
 
 		return success;
 }
 
 bool copy_file(const char *src, const char *dst) {
 
-		const int chunk_sz = 1 << 13;
+		constexpr int chunk_sz = 1 << 16;
 
 		struct stat st;
 		int fdsrc = -1;
@@ -348,6 +338,7 @@ int main(int argc, char **argv) {
 				  std::cerr << version() << std::endl;
 				  std::exit(EXIT_FAILURE);
 				  break;
+
 			case 'h':
 
 			default:
