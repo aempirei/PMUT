@@ -17,7 +17,6 @@
 #include <iostream>
 #include <filesystem>
 #include <iomanip>
-#include <format>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -236,7 +235,7 @@ cleanup:
 
 bool copy_file(const char *src, const char *dst) {
 
-		constexpr int chunk_sz = 1 << 16;
+		constexpr int chunk_sz = 1 << 20;
 
 		struct stat st;
 		int fdsrc = -1;
