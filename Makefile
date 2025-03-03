@@ -2,16 +2,17 @@ CC = gcc
 CXX = g++
 CFLAGS = -O2 -pedantic 
 CXXFLAGS = -O2 -pedantic --std=gnu++2a -lstdc++fs
-CPPFLAGS = -Wall -I. -DVERSION=\"1.31xxx\" -DPROGRAM=\"$(basename $(notdir $@))\"
+CPPFLAGS = -Wall -I. -DVERSION=\"1.32" -DPROGRAM=\"$(basename $(notdir $@))\" -Wno-deprecated-declarations
 CTARGETS = purlencode pidler ptoilet pioperf pgetch
 CXXTARGETS = pcopy psync pabridge
+TARGETS = pkey
 SCRIPTS = pf ptemplate pextract pcols pjoin pid3tag prename pcd pmore pssj pscan
 MODULES = PMUT
 INSTALL_PATH = /usr/local/bin
 
 .PHONY: all clean install wipe
 
-all: $(CXXTARGETS) $(CTARGETS) $(MODULES) $(SCRIPTS)
+all: $(CXXTARGETS) $(CTARGETS) $(TARGETS) $(MODULES) $(SCRIPTS)
 
 %.o : %.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
@@ -41,6 +42,9 @@ $(CTARGETS): % : %.o
 $(CXXTARGETS): % : %.o
 	$(CXX) $(CFLAGS) -o $@ $< -lm -lstdc++fs
 
+pkey: pkey.o
+	$(CXX) $(CFLAGS) -o $@ $< -lssl -lcrypto
+
 clean:
 	if [ -f PMUT/Makefile ]; then ( cd PMUT ; make clean ); fi
 	rm -f *.o *~
@@ -49,7 +53,7 @@ clean:
 	rm -f PMUT.pm
 
 install: all
-	install -m755 $(CXXTARGETS) $(CTARGETS) $(SCRIPTS) $(INSTALL_PATH)
+	install -m755 $(CXXTARGETS) $(CTARGETS) $(TARGETS) $(SCRIPTS) $(INSTALL_PATH)
 	( cd PMUT ; make install )
 
 wipe: clean
