@@ -1,12 +1,12 @@
 CC = gcc
 CXX = g++
-CFLAGS = -O2 -pedantic 
-CXXFLAGS = -O2 -pedantic --std=gnu++2a -lstdc++fs
-CPPFLAGS = -Wall -I. -DVERSION=\"1.32" -DPROGRAM=\"$(basename $(notdir $@))\" -Wno-deprecated-declarations
-CTARGETS = purlencode pidler ptoilet pioperf pgetch
-CXXTARGETS = pcopy psync pabridge
+CFLAGS = -O3 -pedantic 
+CXXFLAGS = -O3 -pedantic --std=gnu++26 -lstdc++fs
+CPPFLAGS = -Wall -I. -DVERSION=\"$(file < VERSION)\" -DPROGRAM=\"$(basename $(notdir $@))\" -DNAMESTRING="\"PMUT/\" PROGRAM \" version \" VERSION" -Wno-deprecated-declarations
+CTARGETS = pidler ptoilet pioperf pgetch
+CXXTARGETS = pcopy psync psplit
 TARGETS = pkey
-SCRIPTS = pf ptemplate pextract pcols pjoin pid3tag prename pcd pmore pssj pscan
+SCRIPTS = ptemplate pextract pcols pjoin pid3tag prename pcd pssj pscan
 MODULES = PMUT
 INSTALL_PATH = /usr/local/bin
 

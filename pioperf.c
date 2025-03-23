@@ -31,9 +31,12 @@ int writeall(int fd, const void *buf, ssize_t buf_sz) {
 
 int main(int argc, char **argv) {
 	void *buf;
+	void *aligned;
 	const ssize_t long_num = 1 << 14;
+	const long page_size = sysconf(_SC_PAGESIZE);
 	const ssize_t buf_sz = sizeof(long) * long_num;
 	ssize_t data_sz = 1 << 26;
+	ssize_t misalign;
 	double rate;
 	const char *suffix = "";
 	int fd;
@@ -50,7 +53,13 @@ int main(int argc, char **argv) {
 
 	data_sz -= (data_sz % buf_sz);
 
-	buf = malloc(buf_sz);
+	buf = malloc(buf_sz * 2);
+	misalign = (ssize_t)buf % buf_sz;
+	aligned = buf + buf_sz - misalign;
+	
+	fprintf(stderr, "page size %ld, buffer size %zd\n", page_size, buf_siz);
+	if(misalign)
+		fprintf(stderr, "buffer mis-aligned by %d bytes, moved to %p\n", misalign, buf);
 	
 	srandom(time(NULL));
 

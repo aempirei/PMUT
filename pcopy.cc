@@ -302,12 +302,6 @@ cleanup:
 		return success;
 }
 
-std::string version() {
-	std::stringstream ss;
-	ss << "PMUT/" << PROGRAM << " version " << VERSION;
-	return ss.str();
-}
-
 void help(const char *prog) {
 		std::cerr << std::endl << "usage: " << prog << " [option]... source destination" << std::endl << std::endl;
 		std::cerr << "\t-h show this help" << std::endl;
@@ -315,7 +309,7 @@ void help(const char *prog) {
 		std::cerr << "\t-f toggle file integrity mode mode (default=" << (config::file ? "enabled" : "disabled") << ")" << std::endl;
 		std::cerr << "\t-d toggle direct i/o mode (default=" << (config::direct ? "enabled" : "disabled") << ")" << std::endl;
 		std::cerr << "\t-s toggle synchronous mode (default=" << (config::sync ? "enabled" : "disabled") << ")" << std::endl;
-		std::cerr << std::endl << version() << std::endl;
+		std::cerr << std::endl << NAMESTRING << std::endl;
 		std::cerr << "report bugs to <aempirei@gmail.com>" << std::endl << std::endl;
 }
 
@@ -334,7 +328,7 @@ int main(int argc, char **argv) {
 			case 'd': config::direct = not config::direct; break;
 
 			case 'V':
-				  std::cerr << version() << std::endl;
+				  std::cerr << NAMESTRING << std::endl;
 				  std::exit(EXIT_FAILURE);
 				  break;
 
