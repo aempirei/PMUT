@@ -5,7 +5,7 @@ CXXFLAGS = -O3 -pedantic --std=gnu++26 -lstdc++fs
 CPPFLAGS = -Wall -I. -DVERSION=\"$(file < VERSION)\" -DPROGRAM=\"$(basename $(notdir $@))\" -DNAMESTRING="\"PMUT/\" PROGRAM \" version \" VERSION" -Wno-deprecated-declarations
 CTARGETS = pidler ptoilet pioperf pgetch
 CXXTARGETS = pcopy psync psplit pmatches
-TARGETS = pkey
+TARGETS = peck
 SCRIPTS = ptemplate pextract pcols pjoin pid3tag prename pcd pssj pscan
 MODULES = PMUT
 INSTALL_PATH = /usr/local/bin
@@ -42,7 +42,7 @@ $(CTARGETS): % : %.o
 $(CXXTARGETS): % : %.o
 	$(CXX) $(CFLAGS) -o $@ $< -lm -lstdc++fs
 
-pkey: pkey.o
+peck: peck.o
 	$(CXX) $(CFLAGS) -o $@ $< -lssl -lcrypto
 
 clean:
