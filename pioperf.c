@@ -12,29 +12,11 @@
 #include <math.h>
 
 
-int writeall(int fd, const void *buf, ssize_t buf_sz) {
-	ssize_t done, left;
-	done = 0;
-	left = buf_sz;
-	do {
-		ssize_t n = write(fd, (const char *)buf + done, left);
-		if(n == -1) {
-			if(errno != EINTR)
-				return -1;
-		} else {
-			left -= n;
-			done += n;
-		}
-	} while(left > 0);
-	return 0;
-}
-
 int main(int argc, char **argv) {
 	void *buf;
 	void *aligned;
-	const ssize_t long_num = 1 << 14;
 	const long page_size = sysconf(_SC_PAGESIZE);
-	const ssize_t buf_sz = sizeof(long) * long_num;
+	const ssize_t buf_sz = page_size * sizeof(long) << 10;
 	ssize_t data_sz = 1 << 26;
 	ssize_t misalign;
 	double rate;
@@ -51,20 +33,18 @@ int main(int argc, char **argv) {
 	if(data_sz < buf_sz)
 		data_sz = buf_sz;
 
-	data_sz -= (data_sz % buf_sz);
-
 	buf = malloc(buf_sz * 2);
 	misalign = (ssize_t)buf % buf_sz;
-	aligned = buf + buf_sz - misalign;
+	aligned = (char *)buf + buf_sz - misalign;
 	
-	fprintf(stderr, "page size %ld, buffer size %zd\n", page_size, buf_siz);
+	fprintf(stderr, "page size %ld, buffer size %zd\n", page_size, buf_sz);
 	if(misalign)
-		fprintf(stderr, "buffer mis-aligned by %d bytes, moved to %p\n", misalign, buf);
+		fprintf(stderr, "buffer mis-aligned by %zd bytes\nmoved from %p to %p\n", misalign, buf, aligned);
 	
 	srandom(time(NULL));
 
-	for(ssize_t n = 0; n < long_num; n++)
-		((long *)buf)[n] = random();
+	for(ssize_t n = 0; n < page_size; n++)
+		((long *)aligned)[n] = random();
 	
 	if(argc < 3) {
 		fprintf(stderr, "\nusage: %s {d|s|n} filename [log2_datasize]\n\n", basename(*argv));
@@ -87,13 +67,18 @@ int main(int argc, char **argv) {
 	gettimeofday(&tv1, NULL);
 
 	for(ssize_t left = data_sz; left > 0; left -= buf_sz) {
-		if(writeall(fd, buf, buf_sz) == -1) {
-			perror("writeall(...)");
+		if(write(fd, aligned, buf_sz) != buf_sz) {
+			perror("write(...)");
 			exit(EXIT_FAILURE);
 		}
 	}
 
 	gettimeofday(&tv2, NULL);
+
+	close(fd);
+	unlink(argv[2]);
+
+	free(buf);
 
 	dtv.tv_sec = tv2.tv_sec - tv1.tv_sec;
 	dtv.tv_usec = tv2.tv_usec - tv1.tv_usec;
@@ -112,9 +97,6 @@ int main(int argc, char **argv) {
 	}
 
 	printf("%.3g%sB/sec\n", rate, suffix);
-
-	close(fd);
-	unlink(argv[2]);
 
 	exit(EXIT_SUCCESS);
 }

@@ -60,10 +60,16 @@ BIGNUM* parse_bn(const char* str) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " {ecdsa | ed25519} integer" << std::endl;
-        return EXIT_FAILURE;
-    }
+
+	auto usage = [=]() {
+		std::cerr << std::endl << "Usage: " << argv[0] << " {ecdsa | ed25519} integer" << std::endl;
+		std::cerr << std::endl << NAMESTRING << std::endl;
+		std::cerr << "report bugs to <aempirei@gmail.com>" << std::endl << std::endl;
+	};
+	if (argc != 3) {
+		usage();
+		return EXIT_FAILURE;
+	}
 
     std::string algo = argv[1];
     BIGNUM* bn = parse_bn(argv[2]);
@@ -202,8 +208,8 @@ int main(int argc, char* argv[]) {
         EVP_PKEY_free(pkey);
         BN_CTX_free(ctx);
     }
-    else {
-        std::cerr << "Usage: " << argv[0] << " {ecdsa | ed25519} integer" << std::endl;
+	else {
+		usage();
         BN_free(bn);
         return EXIT_FAILURE;
     }
